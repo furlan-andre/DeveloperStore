@@ -14,9 +14,12 @@ public class SaleDiscountPolicyTests
     [InlineData(3)]
     public void Given_QuantityFromOneToThree_When_CalculatingDiscount_Then_ShouldReturnZero(int quantity)
     {
-        var discount = _policy.CalculateDiscount(quantity, 100m);
+        var unitPrice = 100m;
+        var expectedDiscount = 0m;
 
-        Assert.Equal(0m, discount);
+        var discount = _policy.CalculateDiscount(quantity, unitPrice);
+
+        Assert.Equal(expectedDiscount, discount);
     }
 
     [Theory(DisplayName = "Should return ten percent discount for quantities from 4 to 9")]
@@ -51,7 +54,9 @@ public class SaleDiscountPolicyTests
     [InlineData(21)]
     public void Given_InvalidQuantity_When_CalculatingDiscount_Then_ShouldThrowDomainException(int quantity)
     {
-        var action = () => { _policy.CalculateDiscount(quantity, 100m); };
+        var unitPrice = 100m;
+
+        var action = () => { _policy.CalculateDiscount(quantity, unitPrice); };
 
         Assert.Throws<DomainException>(action);
     }
@@ -61,7 +66,9 @@ public class SaleDiscountPolicyTests
     [InlineData(-1)]
     public void Given_InvalidUnitPrice_When_CalculatingDiscount_Then_ShouldThrowDomainException(decimal unitPrice)
     {
-        var action = () => { _policy.CalculateDiscount(1, unitPrice); };
+        var quantity = 1;
+
+        var action = () => { _policy.CalculateDiscount(quantity, unitPrice); };
 
         Assert.Throws<DomainException>(action);
     }

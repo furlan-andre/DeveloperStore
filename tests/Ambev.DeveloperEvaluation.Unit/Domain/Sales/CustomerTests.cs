@@ -1,5 +1,6 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Exceptions;
+using Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
 using Xunit;
 
 namespace Ambev.DeveloperEvaluation.Unit.Domain.Sales;
@@ -9,10 +10,7 @@ public class CustomerTests
     [Fact(DisplayName = "Should create valid customer")]
     public void Given_ValidData_When_CreatingCustomer_Then_ShouldCreateCustomer()
     {
-        var id = Guid.NewGuid();
-        var name = "John Doe";
-
-        var customer = new Customer(id, name);
+        var customer = ReferenceDataTestBuilder.CreateCustomer();
 
         Assert.NotNull(customer);
     }
@@ -21,8 +19,9 @@ public class CustomerTests
     public void Given_ValidId_When_CreatingCustomer_Then_ShouldKeepId()
     {
         var id = Guid.NewGuid();
+        var name = "John Doe";
 
-        var customer = new Customer(id, "John Doe");
+        var customer = new Customer(id, name);
 
         Assert.Equal(id, customer.Id);
     }
@@ -31,8 +30,9 @@ public class CustomerTests
     public void Given_ValidName_When_CreatingCustomer_Then_ShouldKeepName()
     {
         var name = "John Doe";
+        var id = Guid.NewGuid();
 
-        var customer = new Customer(Guid.NewGuid(), name);
+        var customer = new Customer(id, name);
 
         Assert.Equal(name, customer.Name);
     }
@@ -40,7 +40,10 @@ public class CustomerTests
     [Fact(DisplayName = "Should throw DomainException when customer id is empty")]
     public void Given_EmptyId_When_CreatingCustomer_Then_ShouldThrowDomainException()
     {
-        var action = () => new Customer(Guid.Empty, "John Doe");
+        var id = Guid.Empty;
+        var name = "John Doe";
+
+        var action = () => new Customer(id, name);
 
         Assert.Throws<DomainException>(action);
     }
@@ -51,7 +54,9 @@ public class CustomerTests
     [InlineData("   ")]
     public void Given_InvalidName_When_CreatingCustomer_Then_ShouldThrowDomainException(string? name)
     {
-        var action = () => new Customer(Guid.NewGuid(), name);
+        var id = Guid.NewGuid();
+
+        var action = () => new Customer(id, name);
 
         Assert.Throws<DomainException>(action);
     }

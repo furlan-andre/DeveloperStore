@@ -1,5 +1,6 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Exceptions;
+using Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
 using Xunit;
 
 namespace Ambev.DeveloperEvaluation.Unit.Domain.Sales;
@@ -9,10 +10,7 @@ public class BranchTests
     [Fact(DisplayName = "Should create valid branch")]
     public void Given_ValidData_When_CreatingBranch_Then_ShouldCreateBranch()
     {
-        var id = Guid.NewGuid();
-        var name = "Main Branch";
-
-        var branch = new Branch(id, name);
+        var branch = ReferenceDataTestBuilder.CreateBranch();
 
         Assert.NotNull(branch);
     }
@@ -21,8 +19,9 @@ public class BranchTests
     public void Given_ValidId_When_CreatingBranch_Then_ShouldKeepId()
     {
         var id = Guid.NewGuid();
+        var name = "Main Branch";
 
-        var branch = new Branch(id, "Main Branch");
+        var branch = new Branch(id, name);
 
         Assert.Equal(id, branch.Id);
     }
@@ -31,8 +30,9 @@ public class BranchTests
     public void Given_ValidName_When_CreatingBranch_Then_ShouldKeepName()
     {
         var name = "Main Branch";
+        var id = Guid.NewGuid();
 
-        var branch = new Branch(Guid.NewGuid(), name);
+        var branch = new Branch(id, name);
 
         Assert.Equal(name, branch.Name);
     }
@@ -40,7 +40,10 @@ public class BranchTests
     [Fact(DisplayName = "Should throw DomainException when branch id is empty")]
     public void Given_EmptyId_When_CreatingBranch_Then_ShouldThrowDomainException()
     {
-        var action = () => new Branch(Guid.Empty, "Main Branch");
+        var id = Guid.Empty;
+        var name = "Main Branch";
+
+        var action = () => new Branch(id, name);
 
         Assert.Throws<DomainException>(action);
     }
@@ -51,7 +54,9 @@ public class BranchTests
     [InlineData("   ")]
     public void Given_InvalidName_When_CreatingBranch_Then_ShouldThrowDomainException(string? name)
     {
-        var action = () => new Branch(Guid.NewGuid(), name);
+        var id = Guid.NewGuid();
+
+        var action = () => new Branch(id, name);
 
         Assert.Throws<DomainException>(action);
     }

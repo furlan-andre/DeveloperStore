@@ -1,23 +1,16 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Exceptions;
-using Ambev.DeveloperEvaluation.Domain.Services.Sales;
+using Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
 using Xunit;
 
 namespace Ambev.DeveloperEvaluation.Unit.Domain.Sales;
 
 public class SaleTests
 {
-    private static readonly Customer Customer = new(Guid.NewGuid(), "John Doe");
-    private static readonly Branch Branch = new(Guid.NewGuid(), "Main Branch");
-    private static readonly Product Product = new(Guid.NewGuid(), "Product description");
-    private static readonly SaleDiscountPolicy DiscountPolicy = new();
-
     [Fact(DisplayName = "Should create valid sale")]
     public void Given_ValidData_When_CreatingSale_Then_ShouldCreateSale()
     {
-        var item = CreateItem();
-
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [item]);
+        var sale = new SaleTestBuilder().Build();
 
         Assert.NotNull(sale);
     }
@@ -25,7 +18,7 @@ public class SaleTests
     [Fact(DisplayName = "Should generate sale id")]
     public void Given_ValidData_When_CreatingSale_Then_ShouldGenerateId()
     {
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [CreateItem()]);
+        var sale = new SaleTestBuilder().Build();
 
         Assert.NotEqual(Guid.Empty, sale.Id);
     }
@@ -35,7 +28,9 @@ public class SaleTests
     {
         var saleNumber = "SALE-001";
 
-        var sale = Sale.Create(saleNumber, DateTime.UtcNow, Customer, Branch, [CreateItem()]);
+        var sale = new SaleTestBuilder()
+            .WithSaleNumber(saleNumber)
+            .Build();
 
         Assert.Equal(saleNumber, sale.SaleNumber);
     }
@@ -45,7 +40,9 @@ public class SaleTests
     {
         var saleDate = DateTime.UtcNow;
 
-        var sale = Sale.Create("SALE-001", saleDate, Customer, Branch, [CreateItem()]);
+        var sale = new SaleTestBuilder()
+            .WithSaleDate(saleDate)
+            .Build();
 
         Assert.Equal(saleDate, sale.SaleDate);
     }
@@ -53,27 +50,38 @@ public class SaleTests
     [Fact(DisplayName = "Should keep customer data")]
     public void Given_Customer_When_CreatingSale_Then_ShouldKeepCustomerData()
     {
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [CreateItem()]);
+        var customer = ReferenceDataTestBuilder.CreateCustomer();
 
-        Assert.Equal(Customer.Id, sale.Customer.Id);
-        Assert.Equal(Customer.Name, sale.Customer.Name);
+        var sale = new SaleTestBuilder()
+            .WithCustomer(customer)
+            .Build();
+
+        Assert.Equal(customer.Id, sale.Customer.Id);
+        Assert.Equal(customer.Name, sale.Customer.Name);
     }
 
     [Fact(DisplayName = "Should keep branch data")]
     public void Given_Branch_When_CreatingSale_Then_ShouldKeepBranchData()
     {
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [CreateItem()]);
+        var branch = ReferenceDataTestBuilder.CreateBranch();
 
-        Assert.Equal(Branch.Id, sale.Branch.Id);
-        Assert.Equal(Branch.Name, sale.Branch.Name);
+        var sale = new SaleTestBuilder()
+            .WithBranch(branch)
+            .Build();
+
+        Assert.Equal(branch.Id, sale.Branch.Id);
+        Assert.Equal(branch.Name, sale.Branch.Name);
     }
 
     [Fact(DisplayName = "Should keep informed items")]
     public void Given_Items_When_CreatingSale_Then_ShouldKeepItems()
     {
-        var item = CreateItem();
+        var item = new SaleItemTestBuilder().Build();
+        SaleItem?[] items = [item];
 
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [item]);
+        var sale = new SaleTestBuilder()
+            .WithItems(items)
+            .Build();
 
         Assert.Single(sale.Items);
         Assert.Contains(item, sale.Items);
@@ -82,7 +90,7 @@ public class SaleTests
     [Fact(DisplayName = "Should start active")]
     public void Given_ValidData_When_CreatingSale_Then_ShouldStartActive()
     {
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [CreateItem()]);
+        var sale = new SaleTestBuilder().Build();
 
         Assert.True(sale.Active);
     }
@@ -90,20 +98,36 @@ public class SaleTests
     [Fact(DisplayName = "Should calculate total sale amount")]
     public void Given_Items_When_CreatingSale_Then_ShouldCalculateTotalSaleAmount()
     {
-        var firstItem = CreateItem(quantity: 1, unitPrice: 100m);
-        var secondItem = CreateItem(quantity: 4, unitPrice: 100m);
+        var firstItemQuantity = 1;
+        var secondItemQuantity = 4;
+        var unitPrice = 100m;
+        var expectedTotalSaleAmount = 460m;
+        
+        var firstItem = new SaleItemTestBuilder()
+            .WithQuantity(firstItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        
+        var secondItem = new SaleItemTestBuilder()
+            .WithQuantity(secondItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        SaleItem?[] items = [firstItem, secondItem];
 
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [firstItem, secondItem]);
+        var sale = new SaleTestBuilder()
+            .WithItems(items)
+            .Build();
 
-        Assert.Equal(460m, sale.TotalSaleAmount);
+        Assert.Equal(expectedTotalSaleAmount, sale.TotalSaleAmount);
     }
 
     [Fact(DisplayName = "Should protect items collection from direct external changes")]
     public void Given_Sale_When_ModifyingExposedItemsCollection_Then_ShouldNotAllowChanges()
     {
-        var sale = Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [CreateItem()]);
+        var sale = new SaleTestBuilder().Build();
+        var item = new SaleItemTestBuilder().Build();
 
-        var action = () => ((ICollection<SaleItem>)sale.Items).Add(CreateItem());
+        var action = () => ((ICollection<SaleItem>)sale.Items).Add(item);
 
         Assert.Throws<NotSupportedException>(action);
     }
@@ -114,7 +138,9 @@ public class SaleTests
     [InlineData("   ")]
     public void Given_InvalidSaleNumber_When_CreatingSale_Then_ShouldThrowDomainException(string? saleNumber)
     {
-        var action = () => Sale.Create(saleNumber, DateTime.UtcNow, Customer, Branch, [CreateItem()]);
+        var action = () => new SaleTestBuilder()
+            .WithSaleNumber(saleNumber)
+            .Build();
 
         Assert.Throws<DomainException>(action);
     }
@@ -122,7 +148,11 @@ public class SaleTests
     [Fact(DisplayName = "Should throw DomainException when sale date is default")]
     public void Given_DefaultSaleDate_When_CreatingSale_Then_ShouldThrowDomainException()
     {
-        var action = () => Sale.Create("SALE-001", default, Customer, Branch, [CreateItem()]);
+        var saleDate = default(DateTime);
+
+        var action = () => new SaleTestBuilder()
+            .WithSaleDate(saleDate)
+            .Build();
 
         Assert.Throws<DomainException>(action);
     }
@@ -130,7 +160,11 @@ public class SaleTests
     [Fact(DisplayName = "Should throw DomainException when customer is null")]
     public void Given_NullCustomer_When_CreatingSale_Then_ShouldThrowDomainException()
     {
-        var action = () => Sale.Create("SALE-001", DateTime.UtcNow, null, Branch, [CreateItem()]);
+        Customer? customer = null;
+
+        var action = () => new SaleTestBuilder()
+            .WithCustomer(customer)
+            .Build();
 
         Assert.Throws<DomainException>(action);
     }
@@ -138,7 +172,11 @@ public class SaleTests
     [Fact(DisplayName = "Should throw DomainException when branch is null")]
     public void Given_NullBranch_When_CreatingSale_Then_ShouldThrowDomainException()
     {
-        var action = () => Sale.Create("SALE-001", DateTime.UtcNow, Customer, null, [CreateItem()]);
+        Branch? branch = null;
+
+        var action = () => new SaleTestBuilder()
+            .WithBranch(branch)
+            .Build();
 
         Assert.Throws<DomainException>(action);
     }
@@ -146,7 +184,11 @@ public class SaleTests
     [Fact(DisplayName = "Should throw DomainException when items is null")]
     public void Given_NullItems_When_CreatingSale_Then_ShouldThrowDomainException()
     {
-        var action = () => Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, null);
+        IEnumerable<SaleItem?>? items = null;
+
+        var action = () => new SaleTestBuilder()
+            .WithItems(items)
+            .Build();
 
         Assert.Throws<DomainException>(action);
     }
@@ -154,7 +196,11 @@ public class SaleTests
     [Fact(DisplayName = "Should throw DomainException when items is empty")]
     public void Given_EmptyItems_When_CreatingSale_Then_ShouldThrowDomainException()
     {
-        var action = () => Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, []);
+        SaleItem?[] items = [];
+
+        var action = () => new SaleTestBuilder()
+            .WithItems(items)
+            .Build();
 
         Assert.Throws<DomainException>(action);
     }
@@ -162,13 +208,13 @@ public class SaleTests
     [Fact(DisplayName = "Should throw DomainException when items contains null")]
     public void Given_ItemsWithNullValue_When_CreatingSale_Then_ShouldThrowDomainException()
     {
-        var action = () => Sale.Create("SALE-001", DateTime.UtcNow, Customer, Branch, [CreateItem(), null]);
+        var item = new SaleItemTestBuilder().Build();
+        SaleItem?[] items = [item, null];
+
+        var action = () => new SaleTestBuilder()
+            .WithItems(items)
+            .Build();
 
         Assert.Throws<DomainException>(action);
-    }
-
-    private static SaleItem CreateItem(int quantity = 1, decimal unitPrice = 100m)
-    {
-        return new SaleItem(Product, quantity, unitPrice, DiscountPolicy);
     }
 }
