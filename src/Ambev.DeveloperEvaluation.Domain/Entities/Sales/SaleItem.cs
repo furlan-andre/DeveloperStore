@@ -6,11 +6,15 @@ namespace Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 public class SaleItem
 {
     public Guid Id { get; private set; }
-    public Product Product { get; private set; }
+    public Product Product { get; private set; } = null!;
     public int Quantity { get; private set; }
     public decimal UnitPrice { get; private set; }
     public decimal Discount { get; private set; }
     public decimal TotalAmount { get; private set; }
+
+    private SaleItem()
+    {
+    }
 
     public SaleItem(Product? product, int quantity, decimal unitPrice, ISaleDiscountPolicy? discountPolicy)
     {

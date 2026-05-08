@@ -5,7 +5,11 @@ namespace Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 public class Product
 {
     public Guid Id { get; private set; }
-    public string Description { get; private set; }
+    public string Description { get; private set; } = null!;
+
+    private Product()
+    {
+    }
 
     public Product(Guid id, string? description)
     {

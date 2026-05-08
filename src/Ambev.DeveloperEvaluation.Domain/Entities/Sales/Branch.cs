@@ -5,7 +5,11 @@ namespace Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 public class Branch
 {
     public Guid Id { get; private set; }
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
+
+    private Branch()
+    {
+    }
 
     public Branch(Guid id, string? name)
     {
