@@ -1,4 +1,5 @@
 using Ambev.DeveloperEvaluation.Common.Security;
+using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,5 +12,6 @@ public class ApplicationModuleInitializer : IModuleInitializer
     {
         builder.Services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         builder.Services.AddScoped<ISaleDiscountPolicy, SaleDiscountPolicy>();
+        builder.Services.AddScoped<ICreateSaleService, CreateSaleService>();
     }
 }
