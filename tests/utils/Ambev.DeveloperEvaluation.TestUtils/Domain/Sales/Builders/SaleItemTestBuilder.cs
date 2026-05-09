@@ -2,7 +2,7 @@ using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
 using Bogus;
 
-namespace Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
+namespace Ambev.DeveloperEvaluation.TestUtils.Domain.Sales.Builders;
 
 public class SaleItemTestBuilder
 {

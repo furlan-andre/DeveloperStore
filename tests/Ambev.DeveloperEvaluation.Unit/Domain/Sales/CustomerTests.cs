@@ -1,6 +1,6 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Exceptions;
-using Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
+using Ambev.DeveloperEvaluation.TestUtils.Domain.Sales.Builders;
 using Xunit;
 
 namespace Ambev.DeveloperEvaluation.Unit.Domain.Sales;

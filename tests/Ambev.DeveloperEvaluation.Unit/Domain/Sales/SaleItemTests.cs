@@ -1,7 +1,7 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
-using Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
+using Ambev.DeveloperEvaluation.TestUtils.Domain.Sales.Builders;
 using NSubstitute;
 using Xunit;
 
