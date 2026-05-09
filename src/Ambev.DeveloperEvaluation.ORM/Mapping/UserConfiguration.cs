@@ -27,5 +27,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasConversion<string>()
             .HasMaxLength(20);
 
+        builder.Ignore(u => u.CreatedAt);
+        builder.Ignore(u => u.UpdatedAt);
     }
 }
