@@ -1,7 +1,7 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Bogus;
 
-namespace Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
+namespace Ambev.DeveloperEvaluation.TestUtils.Domain.Sales.Builders;
 
 public static class ReferenceDataTestBuilder
 {

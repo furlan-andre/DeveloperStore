@@ -1,14 +1,14 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Bogus;
 
-namespace Ambev.DeveloperEvaluation.Unit.Domain.Sales.Builders;
+namespace Ambev.DeveloperEvaluation.TestUtils.Domain.Sales.Builders;
 
 public class SaleTestBuilder
 {
     private static readonly Faker Faker = new();
 
     private string? _saleNumber = Faker.Commerce.Ean13();
-    private DateTime _saleDate = Faker.Date.Recent();
+    private DateTime _saleDate = DateTime.UtcNow;
     private Customer? _customer = ReferenceDataTestBuilder.CreateCustomer();
     private Branch? _branch = ReferenceDataTestBuilder.CreateBranch();
     private IEnumerable<SaleItem?>? _items = [new SaleItemTestBuilder().Build()];
