@@ -1,10 +1,10 @@
-using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
-using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSaleItem;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
 using Bogus;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
+namespace Ambev.DeveloperEvaluation.Unit.WebApi.Sales.CreateSales;
 
-public class CreateSaleRequestTestBuilder
+public class CreateSaleInputTestBuilder
 {
     private static readonly Faker Faker = new();
 
@@ -14,53 +14,53 @@ public class CreateSaleRequestTestBuilder
     private string _customerName = Faker.Person.FullName;
     private Guid _branchId = Guid.NewGuid();
     private string _branchName = Faker.Company.CompanyName();
-    private IReadOnlyCollection<CreateSaleItemRequest> _items = [new CreateSaleItemRequestTestBuilder().Build()];
+    private List<CreateSaleItemInput> _items = [new CreateSaleItemInputTestBuilder().Build()];
 
-    public CreateSaleRequestTestBuilder WithSaleNumber(string saleNumber)
+    public CreateSaleInputTestBuilder WithSaleNumber(string saleNumber)
     {
         _saleNumber = saleNumber;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithSaleDate(DateTime saleDate)
+    public CreateSaleInputTestBuilder WithSaleDate(DateTime saleDate)
     {
         _saleDate = saleDate;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithCustomerId(Guid customerId)
+    public CreateSaleInputTestBuilder WithCustomerId(Guid customerId)
     {
         _customerId = customerId;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithCustomerName(string customerName)
+    public CreateSaleInputTestBuilder WithCustomerName(string customerName)
     {
         _customerName = customerName;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithBranchId(Guid branchId)
+    public CreateSaleInputTestBuilder WithBranchId(Guid branchId)
     {
         _branchId = branchId;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithBranchName(string branchName)
+    public CreateSaleInputTestBuilder WithBranchName(string branchName)
     {
         _branchName = branchName;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithItems(IReadOnlyCollection<CreateSaleItemRequest> items)
+    public CreateSaleInputTestBuilder WithItems(List<CreateSaleItemInput> items)
     {
         _items = items;
         return this;
     }
 
-    public CreateSaleRequest Build()
+    public CreateSaleInput Build()
     {
-        return new CreateSaleRequest
+        return new CreateSaleInput
         {
             SaleNumber = _saleNumber,
             SaleDate = _saleDate,

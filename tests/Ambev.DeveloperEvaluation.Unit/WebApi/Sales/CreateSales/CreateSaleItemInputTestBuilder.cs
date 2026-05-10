@@ -1,10 +1,9 @@
-using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
-using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSaleItem;
 using Bogus;
 
-namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
+namespace Ambev.DeveloperEvaluation.Unit.WebApi.Sales.CreateSales;
 
-public class CreateSaleItemRequestTestBuilder
+public class CreateSaleItemInputTestBuilder
 {
     private static readonly Faker Faker = new();
 
@@ -13,33 +12,33 @@ public class CreateSaleItemRequestTestBuilder
     private int _quantity = Faker.Random.Int(1, 3);
     private decimal _unitPrice = Faker.Finance.Amount(1m, 1000m);
 
-    public CreateSaleItemRequestTestBuilder WithProductId(Guid productId)
+    public CreateSaleItemInputTestBuilder WithProductId(Guid productId)
     {
         _productId = productId;
         return this;
     }
 
-    public CreateSaleItemRequestTestBuilder WithProductDescription(string productDescription)
+    public CreateSaleItemInputTestBuilder WithProductDescription(string productDescription)
     {
         _productDescription = productDescription;
         return this;
     }
 
-    public CreateSaleItemRequestTestBuilder WithQuantity(int quantity)
+    public CreateSaleItemInputTestBuilder WithQuantity(int quantity)
     {
         _quantity = quantity;
         return this;
     }
 
-    public CreateSaleItemRequestTestBuilder WithUnitPrice(decimal unitPrice)
+    public CreateSaleItemInputTestBuilder WithUnitPrice(decimal unitPrice)
     {
         _unitPrice = unitPrice;
         return this;
     }
 
-    public CreateSaleItemRequest Build()
+    public CreateSaleItemInput Build()
     {
-        return new CreateSaleItemRequest
+        return new CreateSaleItemInput
         {
             ProductId = _productId,
             ProductDescription = _productDescription,

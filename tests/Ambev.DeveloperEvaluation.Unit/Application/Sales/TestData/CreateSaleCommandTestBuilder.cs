@@ -4,7 +4,7 @@ using Bogus;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 
-public class CreateSaleRequestTestBuilder
+public class CreateSaleCommandTestBuilder
 {
     private static readonly Faker Faker = new();
 
@@ -14,53 +14,53 @@ public class CreateSaleRequestTestBuilder
     private string _customerName = Faker.Person.FullName;
     private Guid _branchId = Guid.NewGuid();
     private string _branchName = Faker.Company.CompanyName();
-    private IReadOnlyCollection<CreateSaleItemRequest> _items = [new CreateSaleItemRequestTestBuilder().Build()];
+    private IReadOnlyCollection<CreateSaleItemCommand> _items = [new CreateSaleItemCommandTestBuilder().Build()];
 
-    public CreateSaleRequestTestBuilder WithSaleNumber(string saleNumber)
+    public CreateSaleCommandTestBuilder WithSaleNumber(string saleNumber)
     {
         _saleNumber = saleNumber;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithSaleDate(DateTime saleDate)
+    public CreateSaleCommandTestBuilder WithSaleDate(DateTime saleDate)
     {
         _saleDate = saleDate;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithCustomerId(Guid customerId)
+    public CreateSaleCommandTestBuilder WithCustomerId(Guid customerId)
     {
         _customerId = customerId;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithCustomerName(string customerName)
+    public CreateSaleCommandTestBuilder WithCustomerName(string customerName)
     {
         _customerName = customerName;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithBranchId(Guid branchId)
+    public CreateSaleCommandTestBuilder WithBranchId(Guid branchId)
     {
         _branchId = branchId;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithBranchName(string branchName)
+    public CreateSaleCommandTestBuilder WithBranchName(string branchName)
     {
         _branchName = branchName;
         return this;
     }
 
-    public CreateSaleRequestTestBuilder WithItems(IReadOnlyCollection<CreateSaleItemRequest> items)
+    public CreateSaleCommandTestBuilder WithItems(IReadOnlyCollection<CreateSaleItemCommand> items)
     {
         _items = items;
         return this;
     }
 
-    public CreateSaleRequest Build()
+    public CreateSaleCommand Build()
     {
-        return new CreateSaleRequest
+        return new CreateSaleCommand
         {
             SaleNumber = _saleNumber,
             SaleDate = _saleDate,

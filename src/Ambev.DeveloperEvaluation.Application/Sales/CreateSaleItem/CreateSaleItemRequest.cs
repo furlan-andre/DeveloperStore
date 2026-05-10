@@ -1,4 +1,4 @@
-namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
 
 public class CreateSaleItemRequest
 {

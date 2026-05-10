@@ -1,8 +1,9 @@
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
+using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 
-public class CreateSaleRequest
+public sealed record CreateSaleCommand : IRequest<CreateSaleResponse>
 {
     public string SaleNumber { get; set; } = string.Empty;
     public DateTime SaleDate { get; set; }
@@ -10,5 +11,5 @@ public class CreateSaleRequest
     public string CustomerName { get; set; } = string.Empty;
     public Guid BranchId { get; set; }
     public string BranchName { get; set; } = string.Empty;
-    public IReadOnlyCollection<CreateSaleItemRequest> Items { get; set; } = [];
+    public IReadOnlyCollection<CreateSaleItemCommand> Items { get; set; } = [];
 }

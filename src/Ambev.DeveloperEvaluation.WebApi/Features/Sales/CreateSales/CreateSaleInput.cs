@@ -1,8 +1,8 @@
-using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSaleItem;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
 
-public class CreateSaleRequest
+public sealed record CreateSaleInput
 {
     public string SaleNumber { get; set; } = string.Empty;
     public DateTime SaleDate { get; set; }
@@ -10,5 +10,5 @@ public class CreateSaleRequest
     public string CustomerName { get; set; } = string.Empty;
     public Guid BranchId { get; set; }
     public string BranchName { get; set; } = string.Empty;
-    public IReadOnlyCollection<CreateSaleItemRequest> Items { get; set; } = [];
+    public List<CreateSaleItemInput> Items { get; set; } = [];
 }
