@@ -1,4 +1,5 @@
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSaleItem;
 using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.CreateSales;
@@ -6,6 +7,7 @@ using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.UpdateSales;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.DeleteSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSaleItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSales;
 using AutoMapper;
@@ -15,6 +17,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using Xunit;
+using WebApiDeleteSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.DeleteSaleProfile;
 using WebApiUpdateSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.UpdateSaleProfile;
 
 namespace Ambev.DeveloperEvaluation.Unit.WebApi.Sales;
@@ -226,5 +229,94 @@ public class SalesControllerTests
         result.Active.Should().BeFalse();
         result.Items.Should().ContainSingle();
         result.Items.Single().Active.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Should create delete command with route id and send through MediatR")]
+    public async Task Given_ValidId_When_DeletingSale_Then_ShouldSendCommandThroughMediator()
+    {
+        var saleId = Guid.NewGuid();
+        var applicationResponse = new DeleteSaleResponse { Id = saleId, Active = false };
+        var apiResult = new DeleteSaleResult { Id = saleId, Active = false };
+
+        _mediator
+            .Send(Arg.Any<DeleteSaleCommand>(), Arg.Any<CancellationToken>())
+            .Returns(applicationResponse);
+        _mapper.Map<DeleteSaleResult>(applicationResponse).Returns(apiResult);
+
+        await _controller.DeleteSale(saleId, CancellationToken.None);
+
+        await _mediator.Received(1).Send(
+            Arg.Is<DeleteSaleCommand>(command => command.Id == saleId),
+            Arg.Any<CancellationToken>());
+        _mapper.Received(1).Map<DeleteSaleResult>(applicationResponse);
+    }
+
+    [Fact(DisplayName = "Should forward cancellation token to MediatR when deleting sale")]
+    public async Task Given_CancellationToken_When_DeletingSale_Then_ShouldForwardTokenToMediator()
+    {
+        var saleId = Guid.NewGuid();
+        var applicationResponse = new DeleteSaleResponse { Id = saleId, Active = false };
+        var apiResult = new DeleteSaleResult { Id = saleId, Active = false };
+        var cancellationToken = new CancellationTokenSource().Token;
+
+        _mediator
+            .Send(Arg.Any<DeleteSaleCommand>(), cancellationToken)
+            .Returns(applicationResponse);
+        _mapper.Map<DeleteSaleResult>(applicationResponse).Returns(apiResult);
+
+        await _controller.DeleteSale(saleId, cancellationToken);
+
+        await _mediator.Received(1).Send(
+            Arg.Any<DeleteSaleCommand>(),
+            cancellationToken);
+    }
+
+    [Fact(DisplayName = "Should return ok delete sale response")]
+    public async Task Given_ValidId_When_DeletingSale_Then_ShouldReturnOkResponse()
+    {
+        var saleId = Guid.NewGuid();
+        var applicationResponse = new DeleteSaleResponse { Id = saleId, Active = false };
+        var apiResult = new DeleteSaleResult { Id = saleId, Active = false };
+        var expectedStatusCode = StatusCodes.Status200OK;
+        var expectedMessage = "Sale deleted successfully";
+
+        _mediator
+            .Send(Arg.Any<DeleteSaleCommand>(), Arg.Any<CancellationToken>())
+            .Returns(applicationResponse);
+        _mapper.Map<DeleteSaleResult>(applicationResponse).Returns(apiResult);
+
+        var actionResult = await _controller.DeleteSale(saleId, CancellationToken.None);
+
+        var okResult = actionResult.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.StatusCode.Should().Be(expectedStatusCode);
+
+        var apiResponse = okResult.Value.Should().BeOfType<ApiResponseWithData<DeleteSaleResult>>().Subject;
+        apiResponse.Success.Should().BeTrue();
+        apiResponse.Message.Should().Be(expectedMessage);
+        apiResponse.Data.Should().BeSameAs(apiResult);
+        apiResponse.Data!.Active.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Should map delete sale response to result")]
+    public void Given_DeleteSaleResponse_When_MappingToResult_Then_ShouldMapData()
+    {
+        var saleId = Guid.NewGuid();
+        var active = false;
+        var response = new DeleteSaleResponse
+        {
+            Id = saleId,
+            Active = active
+        };
+
+        var mapperConfiguration = new MapperConfiguration(configuration =>
+        {
+            configuration.AddProfile<WebApiDeleteSaleProfile>();
+        });
+        var mapper = mapperConfiguration.CreateMapper();
+
+        var result = mapper.Map<DeleteSaleResult>(response);
+
+        result.Id.Should().Be(saleId);
+        result.Active.Should().BeFalse();
     }
 }
