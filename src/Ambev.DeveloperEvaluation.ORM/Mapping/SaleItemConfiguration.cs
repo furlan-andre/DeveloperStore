@@ -52,5 +52,9 @@ public class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
             .HasColumnName("total_amount")
             .HasColumnType("numeric(18,2)")
             .IsRequired();
+
+        builder.Property(item => item.Active)
+            .HasColumnName("active")
+            .IsRequired();
     }
 }
