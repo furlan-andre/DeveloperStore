@@ -10,10 +10,15 @@ services:
     depends_on:
       ambev.developerevaluation.database:
         condition: service_healthy
+      ambev.developerevaluation.rabbitmq:
+        condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Host=ambev.developerevaluation.database;Port=5432;Database=developer_evaluation;Username=developer;Password=ev@luAt10n;
+      - RabbitMQ__ConnectionString=amqp://guest:guest@ambev.developerevaluation.rabbitmq:5672
+      - RabbitMQ__InputQueue=developerstore.webapi
+      - RabbitMQ__SalesEventsQueue=developerstore.sales.events
     ports:
       - "8080:8080"
 
@@ -30,6 +35,22 @@ services:
       - ambev_developer_evaluation_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U developer -d developer_evaluation"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ambev.developerevaluation.rabbitmq:
+    container_name: ambev_developer_evaluation_rabbitmq
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
