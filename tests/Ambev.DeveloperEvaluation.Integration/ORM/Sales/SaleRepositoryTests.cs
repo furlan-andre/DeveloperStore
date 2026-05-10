@@ -349,6 +349,80 @@ public class SaleRepositoryTests
         await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
+    [Fact(DisplayName = "Should persist logical sale delete")]
+    public async Task Given_ExistingSale_When_DeletingSale_Then_ShouldPersistInactiveSale()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var sale = new SaleTestBuilder().Build();
+        await AddSaleAsync(sale);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+        var saleToDelete = await repository.GetByIdAsync(sale.Id);
+        saleToDelete.Should().NotBeNull();
+
+        saleToDelete!.Delete();
+
+        await repository.DeleteAsync(saleToDelete);
+
+        var persistedSale = await GetPersistedSaleAsync(sale.Id);
+
+        persistedSale.Should().NotBeNull();
+        persistedSale!.Active.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Should keep sale items and total when deleting sale")]
+    public async Task Given_ExistingSaleWithItems_When_DeletingSale_Then_ShouldKeepItemsAndTotal()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var itemQuantity = 4;
+        var unitPrice = 100m;
+        var expectedTotalSaleAmount = 360m;
+        
+        var item = new SaleItemTestBuilder()
+            .WithQuantity(itemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        
+        var sale = new SaleTestBuilder()
+            .WithItems([item])
+            .Build();
+        
+        await AddSaleAsync(sale);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+        var saleToDelete = await repository.GetByIdAsync(sale.Id);
+        saleToDelete.Should().NotBeNull();
+
+        saleToDelete!.Delete();
+
+        await repository.DeleteAsync(saleToDelete);
+
+        var persistedSale = await GetPersistedSaleAsync(sale.Id);
+
+        persistedSale.Should().NotBeNull();
+        persistedSale!.Items.Should().ContainSingle();
+        persistedSale.Items.Single().Id.Should().Be(item.Id);
+        persistedSale.TotalSaleAmount.Should().Be(expectedTotalSaleAmount);
+    }
+
+    [Fact(DisplayName = "Should throw ArgumentNullException when deleting null sale")]
+    public async Task Given_NullSale_When_DeletingSale_Then_ShouldThrowArgumentNullException()
+    {
+        await _fixture.ResetDatabaseAsync();
+        Sale? sale = null;
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var action = async () => await repository.DeleteAsync(sale!);
+
+        await action.Should().ThrowAsync<ArgumentNullException>();
+    }
+
     private async Task<Sale?> GetPersistedSaleAsync(Guid saleId)
     {
         await using var dbContext = _fixture.CreateDbContext();
