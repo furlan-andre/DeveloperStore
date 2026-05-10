@@ -25,6 +25,24 @@ public class SaleItemTests
         Assert.NotEqual(Guid.Empty, item.Id);
     }
 
+    [Fact(DisplayName = "Should start active")]
+    public void Given_ValidData_When_CreatingSaleItem_Then_ShouldStartActive()
+    {
+        var item = new SaleItemTestBuilder().Build();
+
+        Assert.True(item.Active);
+    }
+
+    [Fact(DisplayName = "Should update active flag")]
+    public void Given_ActiveFlag_When_SettingSaleItemActive_Then_ShouldUpdateActiveFlag()
+    {
+        var item = new SaleItemTestBuilder().Build();
+
+        item.SetActive(false);
+
+        Assert.False(item.Active);
+    }
+
     [Fact(DisplayName = "Should keep product data")]
     public void Given_Product_When_CreatingSaleItem_Then_ShouldKeepProductData()
     {

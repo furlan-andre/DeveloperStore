@@ -12,6 +12,7 @@ public class SaleItemTestBuilder
     private int _quantity = Faker.Random.Int(1, 3);
     private decimal _unitPrice = Faker.Finance.Amount(1m, 1000m);
     private ISaleDiscountPolicy? _discountPolicy = new SaleDiscountPolicy();
+    private bool _active = true;
 
     public SaleItemTestBuilder WithProduct(Product? product)
     {
@@ -37,8 +38,17 @@ public class SaleItemTestBuilder
         return this;
     }
 
+    public SaleItemTestBuilder WithActive(bool active)
+    {
+        _active = active;
+        return this;
+    }
+
     public SaleItem Build()
     {
-        return new SaleItem(_product, _quantity, _unitPrice, _discountPolicy);
+        var item = new SaleItem(_product, _quantity, _unitPrice, _discountPolicy);
+        item.SetActive(_active);
+
+        return item;
     }
 }
