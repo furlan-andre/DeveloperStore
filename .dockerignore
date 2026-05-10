@@ -6,6 +6,7 @@
 **/.project
 **/.settings
 **/.toolstarget
+**/.idea
 **/.vs
 **/.vscode
 **/*.*proj.user
@@ -19,6 +20,10 @@
 **/node_modules
 **/npm-debug.log
 **/obj
+**/coverage
+**/coverage-report
+**/*.coverage
+**/*.coveragexml
 **/secrets.dev.yaml
 **/values.dev.yaml
 LICENSE
