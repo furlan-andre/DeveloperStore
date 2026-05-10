@@ -1,5 +1,7 @@
 using Ambev.DeveloperEvaluation.Common.Security;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
+using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
+using Ambev.DeveloperEvaluation.Application.Sales.ListSales;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
@@ -21,10 +23,14 @@ public class ApplicationModuleInitializer : IModuleInitializer
         builder.Services.AddScoped<ICreateSaleService, CreateSaleService>();
         builder.Services.AddScoped<IUpdateSaleService, UpdateSaleService>();
         builder.Services.AddScoped<IDeleteSaleService, DeleteSaleService>();
+        builder.Services.AddScoped<IGetSaleService, GetSaleService>();
+        builder.Services.AddScoped<IListSalesService, ListSalesService>();
         builder.Services.AddScoped<IValidator<CreateSaleCommand>, CreateSaleCommandValidator>();
         builder.Services.AddScoped<IValidator<CreateSaleItemCommand>, CreateSaleItemCommandValidator>();
         builder.Services.AddScoped<IValidator<UpdateSaleCommand>, UpdateSaleCommandValidator>();
         builder.Services.AddScoped<IValidator<UpdateSaleItemCommand>, UpdateSaleItemCommandValidator>();
         builder.Services.AddScoped<IValidator<DeleteSaleCommand>, DeleteSaleCommandValidator>();
+        builder.Services.AddScoped<IValidator<GetSaleCommand>, GetSaleCommandValidator>();
+        builder.Services.AddScoped<IValidator<ListSalesCommand>, ListSalesCommandValidator>();
     }
 }

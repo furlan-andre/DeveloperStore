@@ -1,4 +1,5 @@
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
+using Ambev.DeveloperEvaluation.Domain.Repositories.Sales;
 using Ambev.DeveloperEvaluation.Integration.ORM.Sales.Testcontainers;
 using Ambev.DeveloperEvaluation.ORM.Repositories;
 using Ambev.DeveloperEvaluation.TestUtils.Domain.Sales.Builders;
@@ -423,6 +424,244 @@ public class SaleRepositoryTests
         await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
+    [Fact(DisplayName = "Should get sale by id without tracking with items")]
+    public async Task Given_ExistingSale_When_GettingByIdAsNoTracking_Then_ShouldReturnSaleWithItems()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var item = new SaleItemTestBuilder().Build();
+        var sale = new SaleTestBuilder()
+            .WithItems([item])
+            .Build();
+        await AddSaleAsync(sale);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.GetByIdAsNoTrackingAsync(sale.Id);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(sale.Id);
+        result.Items.Should().ContainSingle();
+        result.Items.Single().Id.Should().Be(item.Id);
+    }
+
+    [Fact(DisplayName = "Should return null when getting missing sale by id without tracking")]
+    public async Task Given_MissingSale_When_GettingByIdAsNoTracking_Then_ShouldReturnNull()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var saleId = Guid.NewGuid();
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.GetByIdAsNoTrackingAsync(saleId);
+
+        result.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Should paginate sales")]
+    public async Task Given_Sales_When_ListingSales_Then_ShouldPaginateResults()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var firstSale = CreateSale("SALE-001", DateTime.UtcNow.AddDays(-3), 1);
+        var secondSale = CreateSale("SALE-002", DateTime.UtcNow.AddDays(-2), 1);
+        var thirdSale = CreateSale("SALE-003", DateTime.UtcNow.AddDays(-1), 1);
+        await AddSalesAsync([firstSale, secondSale, thirdSale]);
+
+        var page = 2;
+        var size = 1;
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery { Page = page, Size = size });
+
+        result.CurrentPage.Should().Be(page);
+        result.PageSize.Should().Be(size);
+        result.TotalItems.Should().Be(3);
+        result.TotalPages.Should().Be(3);
+        result.Items.Should().ContainSingle();
+        result.Items.Single().Id.Should().Be(secondSale.Id);
+    }
+
+    [Fact(DisplayName = "Should filter sales by sale number")]
+    public async Task Given_Sales_When_FilteringBySaleNumber_Then_ShouldReturnMatchingSale()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var expectedSale = CreateSale("SALE-ABC", DateTime.UtcNow, 1);
+        var otherSale = CreateSale("SALE-XYZ", DateTime.UtcNow.AddDays(1), 1);
+        await AddSalesAsync([expectedSale, otherSale]);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery
+        {
+            Page = 1,
+            Size = 10,
+            Filters = new Dictionary<string, string?> { ["saleNumber"] = "SALE-ABC" }
+        });
+
+        result.TotalItems.Should().Be(1);
+        result.Items.Single().Id.Should().Be(expectedSale.Id);
+    }
+
+    [Fact(DisplayName = "Should filter sales by partial sale number")]
+    public async Task Given_Sales_When_FilteringByPartialSaleNumber_Then_ShouldReturnMatchingSales()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var firstSale = CreateSale("ONLINE-001", DateTime.UtcNow, 1);
+        var secondSale = CreateSale("ONLINE-002", DateTime.UtcNow.AddDays(1), 1);
+        var otherSale = CreateSale("STORE-001", DateTime.UtcNow.AddDays(2), 1);
+        await AddSalesAsync([firstSale, secondSale, otherSale]);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery
+        {
+            Page = 1,
+            Size = 10,
+            Filters = new Dictionary<string, string?> { ["saleNumber"] = "ONLINE*" }
+        });
+
+        result.TotalItems.Should().Be(2);
+        result.Items.Select(sale => sale.Id).Should().BeEquivalentTo([firstSale.Id, secondSale.Id]);
+    }
+
+    [Fact(DisplayName = "Should filter sales by active status")]
+    public async Task Given_Sales_When_FilteringByActive_Then_ShouldReturnMatchingSales()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var activeSale = CreateSale("SALE-ACTIVE", DateTime.UtcNow, 1);
+        var inactiveSale = CreateSale("SALE-INACTIVE", DateTime.UtcNow.AddDays(1), 1);
+        inactiveSale.Delete();
+        await AddSalesAsync([activeSale, inactiveSale]);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery
+        {
+            Page = 1,
+            Size = 10,
+            Filters = new Dictionary<string, string?> { ["active"] = "false" }
+        });
+
+        result.TotalItems.Should().Be(1);
+        result.Items.Single().Id.Should().Be(inactiveSale.Id);
+        result.Items.Single().Active.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Should filter sales by sale date range")]
+    public async Task Given_Sales_When_FilteringBySaleDateRange_Then_ShouldReturnMatchingSales()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var oldSale = CreateSale("SALE-OLD", new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), 1);
+        var expectedSale = CreateSale("SALE-MID", new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc), 1);
+        var futureSale = CreateSale("SALE-FUTURE", new DateTime(2026, 12, 1, 0, 0, 0, DateTimeKind.Utc), 1);
+        await AddSalesAsync([oldSale, expectedSale, futureSale]);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery
+        {
+            Page = 1,
+            Size = 10,
+            Filters = new Dictionary<string, string?>
+            {
+                ["_minSaleDate"] = "2026-05-01",
+                ["_maxSaleDate"] = "2026-05-31"
+            }
+        });
+
+        result.TotalItems.Should().Be(1);
+        result.Items.Single().Id.Should().Be(expectedSale.Id);
+    }
+
+    [Fact(DisplayName = "Should filter sales by total sale amount range")]
+    public async Task Given_Sales_When_FilteringByTotalAmountRange_Then_ShouldReturnMatchingSales()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var lowSale = CreateSale("SALE-LOW", DateTime.UtcNow, 1);
+        var expectedSale = CreateSale("SALE-MID", DateTime.UtcNow.AddDays(1), 4);
+        var highSale = CreateSale("SALE-HIGH", DateTime.UtcNow.AddDays(2), 10);
+        await AddSalesAsync([lowSale, expectedSale, highSale]);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery
+        {
+            Page = 1,
+            Size = 10,
+            Filters = new Dictionary<string, string?>
+            {
+                ["_minTotalSaleAmount"] = "300",
+                ["_maxTotalSaleAmount"] = "500"
+            }
+        });
+
+        result.TotalItems.Should().Be(1);
+        result.Items.Single().Id.Should().Be(expectedSale.Id);
+    }
+
+    [Fact(DisplayName = "Should order sales by sale date descending")]
+    public async Task Given_Sales_When_OrderingBySaleDateDescending_Then_ShouldReturnOrderedSales()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var firstSale = CreateSale("SALE-001", DateTime.UtcNow.AddDays(-2), 1);
+        var secondSale = CreateSale("SALE-002", DateTime.UtcNow.AddDays(-1), 1);
+        await AddSalesAsync([firstSale, secondSale]);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery
+        {
+            Page = 1,
+            Size = 10,
+            Order = "saleDate desc"
+        });
+
+        result.Items.Select(sale => sale.Id).Should().ContainInOrder([secondSale.Id, firstSale.Id]);
+    }
+
+    [Fact(DisplayName = "Should order sales by multiple fields")]
+    public async Task Given_Sales_When_OrderingByMultipleFields_Then_ShouldReturnOrderedSales()
+    {
+        await _fixture.ResetDatabaseAsync();
+
+        var activeSale = CreateSale("SALE-B", DateTime.UtcNow, 1);
+        var firstInactiveSale = CreateSale("SALE-A", DateTime.UtcNow.AddDays(1), 1);
+        var secondInactiveSale = CreateSale("SALE-C", DateTime.UtcNow.AddDays(2), 1);
+        firstInactiveSale.Delete();
+        secondInactiveSale.Delete();
+        await AddSalesAsync([activeSale, firstInactiveSale, secondInactiveSale]);
+
+        await using var dbContext = _fixture.CreateDbContext();
+        var repository = new SaleRepository(dbContext);
+
+        var result = await repository.ListAsync(new SaleListQuery
+        {
+            Page = 1,
+            Size = 10,
+            Order = "active desc, saleNumber asc"
+        });
+
+        result.Items.Select(sale => sale.Id)
+            .Should()
+            .ContainInOrder([activeSale.Id, firstInactiveSale.Id, secondInactiveSale.Id]);
+    }
+
     private async Task<Sale?> GetPersistedSaleAsync(Guid saleId)
     {
         await using var dbContext = _fixture.CreateDbContext();
@@ -439,6 +678,28 @@ public class SaleRepositoryTests
         var repository = new SaleRepository(dbContext);
 
         await repository.AddAsync(sale);
+    }
+
+    private async Task AddSalesAsync(IEnumerable<Sale> sales)
+    {
+        foreach (var sale in sales)
+        {
+            await AddSaleAsync(sale);
+        }
+    }
+
+    private static Sale CreateSale(string saleNumber, DateTime saleDate, int itemQuantity)
+    {
+        var item = new SaleItemTestBuilder()
+            .WithQuantity(itemQuantity)
+            .WithUnitPrice(100m)
+            .Build();
+
+        return new SaleTestBuilder()
+            .WithSaleNumber(saleNumber)
+            .WithSaleDate(saleDate)
+            .WithItems([item])
+            .Build();
     }
 
     private static SaleItemUpdateData?[] CreateUpdateDataFromExistingItems(Sale sale)

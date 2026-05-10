@@ -26,12 +26,49 @@ public class BaseController : ControllerBase
         base.NotFound(new ApiResponse { Message = message, Success = false });
 
     protected IActionResult OkPaginated<T>(PaginatedList<T> pagedList) =>
-            Ok(new PaginatedResponse<T>
+            base.Ok(new PaginatedResponse<T>
             {
                 Data = pagedList,
                 CurrentPage = pagedList.CurrentPage,
                 TotalPages = pagedList.TotalPages,
-                TotalCount = pagedList.TotalCount,
+                TotalItems = pagedList.TotalItems,
                 Success = true
             });
+
+    protected QueryParameters GetQueryParameters()
+    {
+        var query = Request.Query;
+
+        var filters = query
+            .Where(parameter => !IsReservedQueryParameter(parameter.Key))
+            .ToDictionary(
+                parameter => parameter.Key,
+                parameter => (string?)parameter.Value.FirstOrDefault(),
+                StringComparer.OrdinalIgnoreCase);
+
+        return new QueryParameters
+        {
+            Page = TryGetIntQueryValue("_page", 1),
+            Size = TryGetIntQueryValue("_size", 10),
+            Order = query.TryGetValue("_order", out var order) ? order.FirstOrDefault() : null,
+            Filters = filters
+        };
+    }
+
+    private int TryGetIntQueryValue(string key, int defaultValue)
+    {
+        if (!Request.Query.TryGetValue(key, out var value))
+            return defaultValue;
+
+        return int.TryParse(value.FirstOrDefault(), out var parsedValue)
+            ? parsedValue
+            : defaultValue;
+    }
+
+    private static bool IsReservedQueryParameter(string key)
+    {
+        return key.Equals("_page", StringComparison.OrdinalIgnoreCase)
+               || key.Equals("_size", StringComparison.OrdinalIgnoreCase)
+               || key.Equals("_order", StringComparison.OrdinalIgnoreCase);
+    }
 }
