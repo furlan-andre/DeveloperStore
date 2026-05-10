@@ -34,4 +34,11 @@ public sealed class SaleRepository : ISaleRepository
 
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task DeleteAsync(Sale sale, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sale);
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

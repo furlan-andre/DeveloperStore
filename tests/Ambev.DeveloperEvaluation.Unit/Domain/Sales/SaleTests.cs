@@ -462,4 +462,58 @@ public class SaleTests
 
         Assert.Throws<DomainException>(action);
     }
+
+    [Fact(DisplayName = "Should logically delete sale")]
+    public void Given_ActiveSale_When_DeletingSale_Then_ShouldInactivateSale()
+    {
+        var sale = new SaleTestBuilder().Build();
+
+        sale.Delete();
+
+        Assert.False(sale.Active);
+    }
+
+    [Fact(DisplayName = "Should keep items when deleting sale")]
+    public void Given_SaleWithItems_When_DeletingSale_Then_ShouldKeepItems()
+    {
+        var item = new SaleItemTestBuilder().Build();
+        var sale = new SaleTestBuilder()
+            .WithItems([item])
+            .Build();
+
+        sale.Delete();
+
+        Assert.Single(sale.Items);
+        Assert.Contains(item, sale.Items);
+    }
+
+    [Fact(DisplayName = "Should keep total sale amount when deleting sale")]
+    public void Given_SaleWithTotalAmount_When_DeletingSale_Then_ShouldKeepTotalSaleAmount()
+    {
+        var itemQuantity = 4;
+        var unitPrice = 100m;
+        var expectedTotalSaleAmount = 360m;
+        var item = new SaleItemTestBuilder()
+            .WithQuantity(itemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        var sale = new SaleTestBuilder()
+            .WithItems([item])
+            .Build();
+
+        sale.Delete();
+
+        Assert.Equal(expectedTotalSaleAmount, sale.TotalSaleAmount);
+    }
+
+    [Fact(DisplayName = "Should allow deleting sale more than once")]
+    public void Given_InactiveSale_When_DeletingSaleAgain_Then_ShouldKeepSaleInactive()
+    {
+        var sale = new SaleTestBuilder().Build();
+
+        sale.Delete();
+        sale.Delete();
+
+        Assert.False(sale.Active);
+    }
 }

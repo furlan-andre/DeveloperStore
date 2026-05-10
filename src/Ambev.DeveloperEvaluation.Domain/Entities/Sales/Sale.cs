@@ -69,6 +69,11 @@ public class Sale
         RecalculateTotalSaleAmount();
     }
 
+    public void Delete()
+    {
+        Active = false;
+    }
+
     private List<SaleItem> ReconcileItems(List<SaleItemUpdateData> updateItems)
     {
         var reconciledItems = new List<SaleItem>();
