@@ -1,6 +1,8 @@
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSales;
 using AutoMapper;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +39,29 @@ public class SalesController : BaseController
         {
             Success = true,
             Message = "Sale created successfully",
+            Data = response
+        });
+    }
+
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ApiResponseWithData<UpdateSaleResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateSale(
+        [FromRoute] Guid id,
+        [FromBody] UpdateSaleInput input,
+        CancellationToken cancellationToken)
+    {
+        var command = _mapper.Map<UpdateSaleCommand>(input);
+        command.Id = id;
+
+        var result = await _mediator.Send(command, cancellationToken);
+        var response = _mapper.Map<UpdateSaleResult>(result);
+
+        return new OkObjectResult(new ApiResponseWithData<UpdateSaleResult>
+        {
+            Success = true,
+            Message = "Sale updated successfully",
             Data = response
         });
     }
