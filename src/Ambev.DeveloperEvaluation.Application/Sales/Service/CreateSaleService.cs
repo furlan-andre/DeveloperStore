@@ -1,9 +1,11 @@
+using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
 using AutoMapper;
 
-namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+namespace Ambev.DeveloperEvaluation.Application.Sales.Service;
 
 public class CreateSaleService : ICreateSaleService
 {
@@ -21,7 +23,7 @@ public class CreateSaleService : ICreateSaleService
         _mapper = mapper;
     }
 
-    public async Task<CreateSaleResult> CreateAsync(
+    public async Task<CreateSaleResponse> CreateAsync(
         CreateSaleRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -40,7 +42,7 @@ public class CreateSaleService : ICreateSaleService
 
         await _saleRepository.AddAsync(sale, cancellationToken);
 
-        return _mapper.Map<CreateSaleResult>(sale);
+        return _mapper.Map<CreateSaleResponse>(sale);
     }
 
     private SaleItem CreateSaleItem(CreateSaleItemRequest item)

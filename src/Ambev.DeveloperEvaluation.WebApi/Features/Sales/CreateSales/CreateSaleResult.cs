@@ -1,4 +1,6 @@
-namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSaleItem;
+
+namespace Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
 
 public class CreateSaleResult
 {
