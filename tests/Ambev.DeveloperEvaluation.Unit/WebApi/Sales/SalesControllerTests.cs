@@ -1,4 +1,5 @@
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSaleItem;
@@ -6,6 +7,7 @@ using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.CreateSales;
 using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.UpdateSales;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSaleItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.DeleteSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSaleItem;
@@ -17,6 +19,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using Xunit;
+using WebApiCreateSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.CreateSaleProfile;
 using WebApiDeleteSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.DeleteSaleProfile;
 using WebApiUpdateSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.UpdateSaleProfile;
 
@@ -97,6 +100,77 @@ public class SalesControllerTests
         apiResponse.Success.Should().BeTrue();
         apiResponse.Message.Should().Be(expectedMessage);
         apiResponse.Data.Should().BeSameAs(apiResult);
+    }
+
+    [Fact(DisplayName = "Should map create sale input to command")]
+    public void Given_CreateSaleInput_When_MappingToCommand_Then_ShouldMapData()
+    {
+        var itemInput = new CreateSaleItemInputTestBuilder().Build();
+        var input = new CreateSaleInputTestBuilder()
+            .WithItems([itemInput])
+            .Build();
+
+        var mapperConfiguration = new MapperConfiguration(configuration =>
+        {
+            configuration.AddProfile<WebApiCreateSaleProfile>();
+        });
+        var mapper = mapperConfiguration.CreateMapper();
+
+        var command = mapper.Map<CreateSaleCommand>(input);
+
+        command.SaleNumber.Should().Be(input.SaleNumber);
+        command.SaleDate.Should().Be(input.SaleDate);
+        command.CustomerId.Should().Be(input.CustomerId);
+        command.CustomerName.Should().Be(input.CustomerName);
+        command.BranchId.Should().Be(input.BranchId);
+        command.BranchName.Should().Be(input.BranchName);
+        command.Items.Should().ContainSingle();
+        command.Items.Single().ProductId.Should().Be(itemInput.ProductId);
+        command.Items.Single().ProductDescription.Should().Be(itemInput.ProductDescription);
+        command.Items.Single().Quantity.Should().Be(itemInput.Quantity);
+        command.Items.Single().UnitPrice.Should().Be(itemInput.UnitPrice);
+    }
+
+    [Fact(DisplayName = "Should map create sale response to result")]
+    public void Given_CreateSaleResponse_When_MappingToResult_Then_ShouldMapData()
+    {
+        var itemResponse = new CreateSaleItemResponse
+        {
+            Id = Guid.NewGuid(),
+            ProductId = Guid.NewGuid(),
+            ProductDescription = "Product",
+            Quantity = 4,
+            UnitPrice = 100m,
+            Discount = 40m,
+            TotalAmount = 360m
+        };
+        var response = new CreateSaleResponse
+        {
+            Id = Guid.NewGuid(),
+            SaleNumber = "SALE-001",
+            Items = [itemResponse]
+        };
+
+        var mapperConfiguration = new MapperConfiguration(configuration =>
+        {
+            configuration.AddProfile<WebApiCreateSaleProfile>();
+        });
+        var mapper = mapperConfiguration.CreateMapper();
+
+        var result = mapper.Map<CreateSaleResult>(response);
+
+        result.Id.Should().Be(response.Id);
+        result.SaleNumber.Should().Be(response.SaleNumber);
+        result.Items.Should().ContainSingle();
+        
+        var itemResult = result.Items.Single();
+        itemResult.Id.Should().Be(itemResponse.Id);
+        itemResult.ProductId.Should().Be(itemResponse.ProductId);
+        itemResult.ProductDescription.Should().Be(itemResponse.ProductDescription);
+        itemResult.Quantity.Should().Be(itemResponse.Quantity);
+        itemResult.UnitPrice.Should().Be(itemResponse.UnitPrice);
+        itemResult.Discount.Should().Be(itemResponse.Discount);
+        itemResult.TotalAmount.Should().Be(itemResponse.TotalAmount);
     }
 
     [Fact(DisplayName = "Should map update input to command, set route id and send through MediatR")]
