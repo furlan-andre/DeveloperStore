@@ -1,15 +1,20 @@
+using Ambev.DeveloperEvaluation.Application.Common.Pagination;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
+using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
+using Ambev.DeveloperEvaluation.Application.Sales.GetSaleItem;
+using Ambev.DeveloperEvaluation.Application.Sales.ListSales;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSaleItem;
 using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.CreateSales;
 using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.UpdateSales;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales;
-using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSaleItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.DeleteSales;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSales;
+using Ambev.DeveloperEvaluation.WebApi.Features.Sales.ListSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSaleItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSales;
 using AutoMapper;
@@ -21,6 +26,8 @@ using NSubstitute;
 using Xunit;
 using WebApiCreateSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.CreateSaleProfile;
 using WebApiDeleteSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.DeleteSaleProfile;
+using WebApiGetSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.GetSaleProfile;
+using WebApiListSalesProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.ListSalesProfile;
 using WebApiUpdateSaleProfile = Ambev.DeveloperEvaluation.WebApi.Features.Sales.Mappings.UpdateSaleProfile;
 
 namespace Ambev.DeveloperEvaluation.Unit.WebApi.Sales;
@@ -36,6 +43,174 @@ public class SalesControllerTests
         _mediator = Substitute.For<IMediator>();
         _mapper = Substitute.For<IMapper>();
         _controller = new SalesController(_mediator, _mapper);
+    }
+
+    [Fact(DisplayName = "Should create list sales command from query and send through MediatR")]
+    public async Task Given_QueryParameters_When_ListingSales_Then_ShouldSendCommandThroughMediator()
+    {
+        var page = 2;
+        var size = 20;
+        var order = "saleDate desc";
+        var active = "true";
+        var saleNumber = "SALE*";
+        var applicationResponse = new PagedResponse<ListSaleResponse>
+        {
+            Items = [],
+            CurrentPage = page,
+            TotalPages = 1,
+            TotalItems = 0,
+            PageSize = size
+        };
+        IReadOnlyCollection<ListSaleResult> apiResult = [];
+        ConfigureQueryString($"?_page={page}&_size={size}&_order={Uri.EscapeDataString(order)}&active={active}&saleNumber={saleNumber}");
+
+        _mediator
+            .Send(Arg.Any<ListSalesCommand>(), Arg.Any<CancellationToken>())
+            .Returns(applicationResponse);
+        _mapper.Map<IReadOnlyCollection<ListSaleResult>>(applicationResponse.Items).Returns(apiResult);
+
+        await _controller.ListSales(CancellationToken.None);
+
+        await _mediator.Received(1).Send(
+            Arg.Is<ListSalesCommand>(command =>
+                command.Page == page &&
+                command.Size == size &&
+                command.Order == order &&
+                command.Filters.Count == 2 &&
+                command.Filters["active"] == active &&
+                command.Filters["saleNumber"] == saleNumber),
+            Arg.Any<CancellationToken>());
+        
+        _mapper.Received(1).Map<IReadOnlyCollection<ListSaleResult>>(applicationResponse.Items);
+    }
+
+    [Fact(DisplayName = "Should forward cancellation token to MediatR when listing sales")]
+    public async Task Given_CancellationToken_When_ListingSales_Then_ShouldForwardTokenToMediator()
+    {
+        var cancellationToken = new CancellationTokenSource().Token;
+        var applicationResponse = new PagedResponse<ListSaleResponse>();
+        IReadOnlyCollection<ListSaleResult> apiResult = [];
+        ConfigureQueryString("?_page=1&_size=10");
+
+        _mediator
+            .Send(Arg.Any<ListSalesCommand>(), cancellationToken)
+            .Returns(applicationResponse);
+        _mapper.Map<IReadOnlyCollection<ListSaleResult>>(applicationResponse.Items).Returns(apiResult);
+
+        await _controller.ListSales(cancellationToken);
+
+        await _mediator.Received(1).Send(
+            Arg.Any<ListSalesCommand>(),
+            cancellationToken);
+    }
+
+    [Fact(DisplayName = "Should return paginated list sales response")]
+    public async Task Given_QueryParameters_When_ListingSales_Then_ShouldReturnPaginatedResponse()
+    {
+        var page = 2;
+        var totalPages = 3;
+        var totalItems = 25;
+        var saleResult = new ListSaleResult { Id = Guid.NewGuid() };
+        
+        var applicationResponse = new PagedResponse<ListSaleResponse>
+        {
+            Items = [new ListSaleResponse { Id = saleResult.Id }],
+            CurrentPage = page,
+            TotalPages = totalPages,
+            TotalItems = totalItems,
+            PageSize = 10
+        };
+        
+        IReadOnlyCollection<ListSaleResult> apiResult = [saleResult];
+        var expectedStatusCode = StatusCodes.Status200OK;
+        var expectedMessage = "Sales retrieved successfully";
+        ConfigureQueryString("?_page=2&_size=10");
+
+        _mediator
+            .Send(Arg.Any<ListSalesCommand>(), Arg.Any<CancellationToken>())
+            .Returns(applicationResponse);
+        
+        _mapper.Map<IReadOnlyCollection<ListSaleResult>>(applicationResponse.Items).Returns(apiResult);
+
+        var actionResult = await _controller.ListSales(CancellationToken.None);
+
+        var okResult = actionResult.Should().BeOfType<OkObjectResult>().Subject;
+        var apiResponse = okResult.Value.Should().BeOfType<PaginatedResponse<ListSaleResult>>().Subject;
+        
+        okResult.StatusCode.Should().Be(expectedStatusCode);
+        apiResponse.Success.Should().BeTrue();
+        apiResponse.Message.Should().Be(expectedMessage);
+        apiResponse.Data.Should().BeSameAs(apiResult);
+        apiResponse.CurrentPage.Should().Be(page);
+        apiResponse.TotalPages.Should().Be(totalPages);
+        apiResponse.TotalItems.Should().Be(totalItems);
+    }
+
+    [Fact(DisplayName = "Should create get sale command with route id and send through MediatR")]
+    public async Task Given_ValidId_When_GettingSale_Then_ShouldSendCommandThroughMediator()
+    {
+        var saleId = Guid.NewGuid();
+        var applicationResponse = new GetSaleResponse { Id = saleId };
+        var apiResult = new GetSaleResult { Id = saleId };
+
+        _mediator
+            .Send(Arg.Any<GetSaleCommand>(), Arg.Any<CancellationToken>())
+            .Returns(applicationResponse);
+        _mapper.Map<GetSaleResult>(applicationResponse).Returns(apiResult);
+
+        await _controller.GetSale(saleId, CancellationToken.None);
+
+        await _mediator.Received(1).Send(
+            Arg.Is<GetSaleCommand>(command => command.Id == saleId),
+            Arg.Any<CancellationToken>());
+        
+        _mapper.Received(1).Map<GetSaleResult>(applicationResponse);
+    }
+
+    [Fact(DisplayName = "Should forward cancellation token to MediatR when getting sale")]
+    public async Task Given_CancellationToken_When_GettingSale_Then_ShouldForwardTokenToMediator()
+    {
+        var saleId = Guid.NewGuid();
+        var applicationResponse = new GetSaleResponse { Id = saleId };
+        var apiResult = new GetSaleResult { Id = saleId };
+        var cancellationToken = new CancellationTokenSource().Token;
+
+        _mediator
+            .Send(Arg.Any<GetSaleCommand>(), cancellationToken)
+            .Returns(applicationResponse);
+        _mapper.Map<GetSaleResult>(applicationResponse).Returns(apiResult);
+
+        await _controller.GetSale(saleId, cancellationToken);
+
+        await _mediator.Received(1).Send(
+            Arg.Any<GetSaleCommand>(),
+            cancellationToken);
+    }
+
+    [Fact(DisplayName = "Should return ok get sale response")]
+    public async Task Given_ValidId_When_GettingSale_Then_ShouldReturnOkResponse()
+    {
+        var saleId = Guid.NewGuid();
+        var applicationResponse = new GetSaleResponse { Id = saleId };
+        var apiResult = new GetSaleResult { Id = saleId };
+        var expectedStatusCode = StatusCodes.Status200OK;
+        var expectedMessage = "Sale retrieved successfully";
+
+        _mediator
+            .Send(Arg.Any<GetSaleCommand>(), Arg.Any<CancellationToken>())
+            .Returns(applicationResponse);
+        
+        _mapper.Map<GetSaleResult>(applicationResponse).Returns(apiResult);
+
+        var actionResult = await _controller.GetSale(saleId, CancellationToken.None);
+
+        var okResult = actionResult.Should().BeOfType<OkObjectResult>().Subject;
+        var apiResponse = okResult.Value.Should().BeOfType<ApiResponseWithData<GetSaleResult>>().Subject;
+        
+        okResult.StatusCode.Should().Be(expectedStatusCode);
+        apiResponse.Success.Should().BeTrue();
+        apiResponse.Message.Should().Be(expectedMessage);
+        apiResponse.Data.Should().BeSameAs(apiResult);
     }
 
     [Fact(DisplayName = "Should map input to command and send through MediatR")]
@@ -144,6 +319,7 @@ public class SalesControllerTests
             Discount = 40m,
             TotalAmount = 360m
         };
+        
         var response = new CreateSaleResponse
         {
             Id = Guid.NewGuid(),
@@ -155,6 +331,7 @@ public class SalesControllerTests
         {
             configuration.AddProfile<WebApiCreateSaleProfile>();
         });
+        
         var mapper = mapperConfiguration.CreateMapper();
 
         var result = mapper.Map<CreateSaleResult>(response);
@@ -164,6 +341,7 @@ public class SalesControllerTests
         result.Items.Should().ContainSingle();
         
         var itemResult = result.Items.Single();
+        
         itemResult.Id.Should().Be(itemResponse.Id);
         itemResult.ProductId.Should().Be(itemResponse.ProductId);
         itemResult.ProductDescription.Should().Be(itemResponse.ProductDescription);
@@ -392,5 +570,102 @@ public class SalesControllerTests
 
         result.Id.Should().Be(saleId);
         result.Active.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Should map get sale response to result including items")]
+    public void Given_GetSaleResponse_When_MappingToResult_Then_ShouldMapData()
+    {
+        var itemResponse = new GetSaleItemResponse
+        {
+            Id = Guid.NewGuid(),
+            ProductId = Guid.NewGuid(),
+            ProductDescription = "Product",
+            Quantity = 4,
+            UnitPrice = 100m,
+            Discount = 40m,
+            TotalAmount = 360m,
+            Active = true
+        };
+        
+        var response = new GetSaleResponse
+        {
+            Id = Guid.NewGuid(),
+            SaleNumber = "SALE-001",
+            Active = true,
+            Items = [itemResponse]
+        };
+
+        var mapperConfiguration = new MapperConfiguration(configuration =>
+        {
+            configuration.AddProfile<WebApiGetSaleProfile>();
+        });
+        
+        var mapper = mapperConfiguration.CreateMapper();
+
+        var result = mapper.Map<GetSaleResult>(response);
+
+        result.Id.Should().Be(response.Id);
+        result.SaleNumber.Should().Be(response.SaleNumber);
+        result.Active.Should().BeTrue();
+        result.Items.Should().ContainSingle();
+
+        var itemResult = result.Items.Single();
+        itemResult.Id.Should().Be(itemResponse.Id);
+        itemResult.ProductId.Should().Be(itemResponse.ProductId);
+        itemResult.ProductDescription.Should().Be(itemResponse.ProductDescription);
+        itemResult.Quantity.Should().Be(itemResponse.Quantity);
+        itemResult.UnitPrice.Should().Be(itemResponse.UnitPrice);
+        itemResult.Discount.Should().Be(itemResponse.Discount);
+        itemResult.TotalAmount.Should().Be(itemResponse.TotalAmount);
+        itemResult.Active.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "Should map list sale response to result")]
+    public void Given_ListSaleResponse_When_MappingToResult_Then_ShouldMapData()
+    {
+        var response = new ListSaleResponse
+        {
+            Id = Guid.NewGuid(),
+            SaleNumber = "SALE-001",
+            SaleDate = DateTime.UtcNow,
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "Customer",
+            BranchId = Guid.NewGuid(),
+            BranchName = "Branch",
+            TotalSaleAmount = 360m,
+            Active = true
+        };
+
+        var mapperConfiguration = new MapperConfiguration(configuration =>
+        {
+            configuration.AddProfile<WebApiListSalesProfile>();
+        });
+        var mapper = mapperConfiguration.CreateMapper();
+
+        var result = mapper.Map<ListSaleResult>(response);
+
+        result.Id.Should().Be(response.Id);
+        result.SaleNumber.Should().Be(response.SaleNumber);
+        result.SaleDate.Should().Be(response.SaleDate);
+        result.CustomerId.Should().Be(response.CustomerId);
+        result.CustomerName.Should().Be(response.CustomerName);
+        result.BranchId.Should().Be(response.BranchId);
+        result.BranchName.Should().Be(response.BranchName);
+        result.TotalSaleAmount.Should().Be(response.TotalSaleAmount);
+        result.Active.Should().BeTrue();
+    }
+
+    private void ConfigureQueryString(string queryString)
+    {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                Request =
+                {
+                    QueryString = new QueryString(queryString)
+                }
+            }
+        };
     }
 }
