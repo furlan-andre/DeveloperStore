@@ -11,6 +11,7 @@ public class SaleItem
     public decimal UnitPrice { get; private set; }
     public decimal Discount { get; private set; }
     public decimal TotalAmount { get; private set; }
+    public bool Active { get; private set; }
 
     private SaleItem()
     {
@@ -52,5 +53,24 @@ public class SaleItem
         UnitPrice = unitPrice;
         Discount = discount;
         TotalAmount = totalAmount;
+        Active = true;
+    }
+
+    public void UpdateFrom(SaleItem? saleItem, bool active)
+    {
+        if (saleItem is null)
+            throw new DomainException("Sale item is required.");
+
+        Product = saleItem.Product;
+        Quantity = saleItem.Quantity;
+        UnitPrice = saleItem.UnitPrice;
+        Discount = saleItem.Discount;
+        TotalAmount = saleItem.TotalAmount;
+        Active = active;
+    }
+
+    public void SetActive(bool active)
+    {
+        Active = active;
     }
 }

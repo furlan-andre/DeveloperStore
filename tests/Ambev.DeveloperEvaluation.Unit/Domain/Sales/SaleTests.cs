@@ -121,6 +121,35 @@ public class SaleTests
         Assert.Equal(expectedTotalSaleAmount, sale.TotalSaleAmount);
     }
 
+    [Fact(DisplayName = "Should calculate total sale amount using only active items")]
+    public void Given_InactiveItems_When_CreatingSale_Then_ShouldCalculateTotalSaleAmountUsingOnlyActiveItems()
+    {
+        var unitPrice = 100m;
+        
+        var activeItemQuantity = 4;
+        var inactiveItemQuantity = 10;
+        
+        var expectedTotalSaleAmount = 360m;
+
+        var activeItem = new SaleItemTestBuilder()
+            .WithQuantity(activeItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+
+        var inactiveItem = new SaleItemTestBuilder()
+            .WithQuantity(inactiveItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .WithActive(false)
+            .Build();
+        SaleItem?[] items = [activeItem, inactiveItem];
+
+        var sale = new SaleTestBuilder()
+            .WithItems(items)
+            .Build();
+
+        Assert.Equal(expectedTotalSaleAmount, sale.TotalSaleAmount);
+    }
+
     [Fact(DisplayName = "Should protect items collection from direct external changes")]
     public void Given_Sale_When_ModifyingExposedItemsCollection_Then_ShouldNotAllowChanges()
     {
@@ -214,6 +243,222 @@ public class SaleTests
         var action = () => new SaleTestBuilder()
             .WithItems(items)
             .Build();
+
+        Assert.Throws<DomainException>(action);
+    }
+
+    [Fact(DisplayName = "Should update sale data")]
+    public void Given_ValidData_When_UpdatingSale_Then_ShouldUpdateSaleData()
+    {
+        var sale = new SaleTestBuilder().Build();
+        var saleNumber = "SALE-UPDATED";
+        var saleDate = DateTime.UtcNow.AddDays(1);
+        var customer = ReferenceDataTestBuilder.CreateCustomer();
+        var branch = ReferenceDataTestBuilder.CreateBranch();
+        var active = true;
+        var item = new SaleItemTestBuilder().Build();
+        SaleItemUpdateData?[] items = [new(null, item)];
+
+        sale.Update(saleNumber, saleDate, customer, branch, active, items);
+
+        Assert.Equal(saleNumber, sale.SaleNumber);
+        Assert.Equal(saleDate, sale.SaleDate);
+        Assert.Equal(customer.Id, sale.Customer.Id);
+        Assert.Equal(customer.Name, sale.Customer.Name);
+        Assert.Equal(branch.Id, sale.Branch.Id);
+        Assert.Equal(branch.Name, sale.Branch.Name);
+        Assert.True(sale.Active);
+    }
+
+    [Fact(DisplayName = "Should update active flag without removing items")]
+    public void Given_InactiveUpdate_When_UpdatingSale_Then_ShouldInactivateSaleAndKeepItems()
+    {
+        var existingItem = new SaleItemTestBuilder().Build();
+        var sale = new SaleTestBuilder()
+            .WithItems([existingItem])
+            .Build();
+        var active = false;
+        
+        SaleItemUpdateData?[] items = [new(existingItem.Id, existingItem)];
+
+        sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, active, items);
+
+        Assert.False(sale.Active);
+        Assert.Single(sale.Items);
+        Assert.Contains(existingItem, sale.Items);
+    }
+
+    [Fact(DisplayName = "Should update existing sale item by id")]
+    public void Given_ExistingItemId_When_UpdatingSale_Then_ShouldUpdateItemAndPreserveId()
+    {
+        var existingItem = new SaleItemTestBuilder()
+            .WithQuantity(1)
+            .WithUnitPrice(100m)
+            .Build();
+        
+        var sale = new SaleTestBuilder()
+            .WithItems([existingItem])
+            .Build();
+        
+        var originalItemId = existingItem.Id;
+        var updatedItem = new SaleItemTestBuilder()
+            .WithQuantity(4)
+            .WithUnitPrice(100m)
+            .Build();
+        
+        var expectedDiscount = 40m;
+        var expectedTotalAmount = 360m;
+        SaleItemUpdateData?[] items = [new(originalItemId, updatedItem)];
+
+        sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, sale.Active, items);
+
+        var saleItem = sale.Items.Single();
+        
+        Assert.Equal(originalItemId, saleItem.Id);
+        Assert.Equal(updatedItem.Product.Id, saleItem.Product.Id);
+        Assert.Equal(updatedItem.Product.Description, saleItem.Product.Description);
+        Assert.Equal(updatedItem.Quantity, saleItem.Quantity);
+        Assert.Equal(updatedItem.UnitPrice, saleItem.UnitPrice);
+        Assert.Equal(expectedDiscount, saleItem.Discount);
+        Assert.Equal(expectedTotalAmount, saleItem.TotalAmount);
+        Assert.Equal(expectedTotalAmount, sale.TotalSaleAmount);
+    }
+
+    [Fact(DisplayName = "Should inactivate existing sale item and exclude it from total")]
+    public void Given_InactiveExistingItem_When_UpdatingSale_Then_ShouldInactivateItemAndExcludeItFromTotal()
+    {
+        var activeItemQuantity = 4;
+        var inactiveItemQuantity = 10;
+        var unitPrice = 100m;
+        var inactive = false;
+        var expectedTotalSaleAmount = 360m;
+        
+        var activeItem = new SaleItemTestBuilder()
+            .WithQuantity(activeItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        
+        var itemToInactivate = new SaleItemTestBuilder()
+            .WithQuantity(inactiveItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        
+        var sale = new SaleTestBuilder()
+            .WithItems([activeItem, itemToInactivate])
+            .Build();
+
+        SaleItemUpdateData?[] items =
+        [
+            new(activeItem.Id, activeItem),
+            new(itemToInactivate.Id, itemToInactivate, inactive)
+        ];
+
+        sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, sale.Active, items);
+
+        var inactiveItem = sale.Items.Single(item => item.Id == itemToInactivate.Id);
+        
+        Assert.False(inactiveItem.Active);
+        Assert.Equal(expectedTotalSaleAmount, sale.TotalSaleAmount);
+    }
+
+    [Fact(DisplayName = "Should add new item when item id is empty")]
+    public void Given_EmptyItemId_When_UpdatingSale_Then_ShouldAddNewItem()
+    {
+        var existingItem = new SaleItemTestBuilder().Build();
+        var newItem = new SaleItemTestBuilder().Build();
+        var sale = new SaleTestBuilder()
+            .WithItems([existingItem])
+            .Build();
+        
+        SaleItemUpdateData?[] items =
+        [
+            new(existingItem.Id, existingItem),
+            new(Guid.Empty, newItem)
+        ];
+
+        sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, sale.Active, items);
+
+        Assert.Equal(2, sale.Items.Count);
+        Assert.Contains(existingItem, sale.Items);
+        Assert.Contains(newItem, sale.Items);
+    }
+
+    [Fact(DisplayName = "Should add inactive new item and exclude it from total")]
+    public void Given_InactiveNewItem_When_UpdatingSale_Then_ShouldAddInactiveItemAndExcludeItFromTotal()
+    {
+        var existingItemQuantity = 4;
+        var newItemQuantity = 10;
+        var unitPrice = 100m;
+        var inactive = false;
+        var expectedTotalSaleAmount = 360m;
+        
+        var existingItem = new SaleItemTestBuilder()
+            .WithQuantity(existingItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        
+        var newItem = new SaleItemTestBuilder()
+            .WithQuantity(newItemQuantity)
+            .WithUnitPrice(unitPrice)
+            .Build();
+        
+        var sale = new SaleTestBuilder()
+            .WithItems([existingItem])
+            .Build();
+        
+        SaleItemUpdateData?[] items =
+        [
+            new(existingItem.Id, existingItem),
+            new(Guid.Empty, newItem, inactive)
+        ];
+
+        sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, sale.Active, items);
+
+        var inactiveItem = sale.Items.Single(item => item.Id == newItem.Id);
+        
+        Assert.False(inactiveItem.Active);
+        Assert.Equal(expectedTotalSaleAmount, sale.TotalSaleAmount);
+    }
+
+    [Fact(DisplayName = "Should remove old item when item is absent from update")]
+    public void Given_MissingExistingItem_When_UpdatingSale_Then_ShouldRemoveItem()
+    {
+        var keptItem = new SaleItemTestBuilder().Build();
+        var removedItem = new SaleItemTestBuilder().Build();
+        var sale = new SaleTestBuilder()
+            .WithItems([keptItem, removedItem])
+            .Build();
+        
+        SaleItemUpdateData?[] items = [new(keptItem.Id, keptItem)];
+
+        sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, sale.Active, items);
+
+        Assert.Single(sale.Items);
+        Assert.Contains(keptItem, sale.Items);
+        Assert.DoesNotContain(removedItem, sale.Items);
+    }
+
+    [Fact(DisplayName = "Should throw DomainException when item id does not belong to sale")]
+    public void Given_ItemIdFromAnotherSale_When_UpdatingSale_Then_ShouldThrowDomainException()
+    {
+        var sale = new SaleTestBuilder().Build();
+        var anotherItemId = Guid.NewGuid();
+        var item = new SaleItemTestBuilder().Build();
+        
+        SaleItemUpdateData?[] items = [new(anotherItemId, item)];
+
+        var action = () => sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, sale.Active, items);
+
+        Assert.Throws<DomainException>(action);
+    }
+
+    [Fact(DisplayName = "Should throw DomainException when update items contains null")]
+    public void Given_NullUpdateItem_When_UpdatingSale_Then_ShouldThrowDomainException()
+    {
+        var sale = new SaleTestBuilder().Build();
+        SaleItemUpdateData?[] items = [null];
+
+        var action = () => sale.Update(sale.SaleNumber, sale.SaleDate, sale.Customer, sale.Branch, sale.Active, items);
 
         Assert.Throws<DomainException>(action);
     }
