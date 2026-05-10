@@ -28,6 +28,14 @@ public sealed class SaleRepository : ISaleRepository
             .FirstOrDefaultAsync(sale => sale.Id == id, cancellationToken);
     }
 
+    public async Task<Sale?> GetByIdAsNoTrackingAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Sales
+            .AsNoTracking()
+            .Include(sale => sale.Items)
+            .FirstOrDefaultAsync(sale => sale.Id == id, cancellationToken);
+    }
+
     public async Task UpdateAsync(Sale sale, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(sale);
