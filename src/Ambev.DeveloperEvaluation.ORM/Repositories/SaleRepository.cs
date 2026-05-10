@@ -95,13 +95,13 @@ public sealed class SaleRepository : ISaleRepository
                 
                 "saleNumber" => ApplyStringFilter(sales, sale => sale.SaleNumber, filter.Value),
                 
-                "saleDate" => DateTime.TryParse(filter.Value, out var value) 
+                "saleDate" => TryParseUtcDateTime(filter.Value, out var value) 
                     ? sales.Where(sale => sale.SaleDate == value) : sales,
                 
-                "_minSaleDate" => DateTime.TryParse(filter.Value, out var value) 
+                "_minSaleDate" => TryParseUtcDateTime(filter.Value, out var value) 
                     ? sales.Where(sale => sale.SaleDate >= value) : sales,
                 
-                "_maxSaleDate" => DateTime.TryParse(filter.Value, out var value) 
+                "_maxSaleDate" => TryParseUtcDateTime(filter.Value, out var value) 
                     ? sales.Where(sale => sale.SaleDate <= value) : sales,
                 
                 "customerId" => Guid.TryParse(filter.Value, out var value) 
@@ -126,6 +126,21 @@ public sealed class SaleRepository : ISaleRepository
         }
 
         return sales;
+    }
+
+    private static bool TryParseUtcDateTime(string value, out DateTime dateTime)
+    {
+        if (!DateTime.TryParse(value, out var parsedDateTime))
+        {
+            dateTime = default;
+            return false;
+        }
+
+        dateTime = parsedDateTime.Kind == DateTimeKind.Utc
+            ? parsedDateTime
+            : DateTime.SpecifyKind(parsedDateTime, DateTimeKind.Utc);
+
+        return true;
     }
 
     private static IQueryable<Sale> ApplyStringFilter(
