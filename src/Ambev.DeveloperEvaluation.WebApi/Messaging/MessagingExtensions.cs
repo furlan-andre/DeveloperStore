@@ -28,6 +28,7 @@ public static class MessagingExtensions
         });
 
         builder.Services.AddScoped<ISalesEventPublisher, RebusSalesEventPublisher>();
+        builder.Services.AddHostedService<RabbitMqTopologyInitializer>();
 
         builder.Services
             .AddHealthChecks()
