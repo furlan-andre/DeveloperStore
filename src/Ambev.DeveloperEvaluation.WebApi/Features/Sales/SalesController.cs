@@ -46,20 +46,7 @@ public class SalesController : BaseController
         
         var result = await _mediator.Send(command, cancellationToken);
         
-        return result.ToActionResult(response =>
-        {
-            var apiResult = _mapper.Map<IReadOnlyCollection<ListSaleResult>>(response.Items);
-
-            return new OkObjectResult(new PaginatedResponse<ListSaleResult>
-            {
-                Success = true,
-                Message = "Sales retrieved successfully",
-                Data = apiResult,
-                CurrentPage = response.CurrentPage,
-                TotalPages = response.TotalPages,
-                TotalItems = response.TotalItems
-            });
-        });
+        return result.ToActionResult(CreateListSalesResponse);
     }
 
     [HttpGet("{id}")]
@@ -75,17 +62,7 @@ public class SalesController : BaseController
 
         var result = await _mediator.Send(command, cancellationToken);
 
-        return result.ToActionResult(response =>
-        {
-            var apiResult = _mapper.Map<GetSaleResult>(response);
-
-            return new OkObjectResult(new ApiResponseWithData<GetSaleResult>
-            {
-                Success = true,
-                Message = "Sale retrieved successfully",
-                Data = apiResult
-            });
-        });
+        return result.ToActionResult(CreateGetSaleResponse);
     }
 
     [HttpPost]
@@ -100,17 +77,7 @@ public class SalesController : BaseController
         
         var result = await _mediator.Send(command, cancellationToken);
 
-        return result.ToActionResult(response =>
-        {
-            var apiResult = _mapper.Map<CreateSaleResult>(response);
-
-            return Created($"/api/sales/{apiResult.Id}", new ApiResponseWithData<CreateSaleResult>
-            {
-                Success = true,
-                Message = "Sale created successfully",
-                Data = apiResult
-            });
-        });
+        return result.ToActionResult(CreateCreatedSaleResponse);
     }
 
     [HttpPut("{id}")]
@@ -128,17 +95,7 @@ public class SalesController : BaseController
 
         var result = await _mediator.Send(command, cancellationToken);
 
-        return result.ToActionResult(response =>
-        {
-            var apiResult = _mapper.Map<UpdateSaleResult>(response);
-
-            return new OkObjectResult(new ApiResponseWithData<UpdateSaleResult>
-            {
-                Success = true,
-                Message = "Sale updated successfully",
-                Data = apiResult
-            });
-        });
+        return result.ToActionResult(CreateUpdatedSaleResponse);
     }
 
     [HttpDelete("{id}")]
@@ -154,16 +111,69 @@ public class SalesController : BaseController
 
         var result = await _mediator.Send(command, cancellationToken);
 
-        return result.ToActionResult(response =>
-        {
-            var apiResult = _mapper.Map<DeleteSaleResult>(response);
+        return result.ToActionResult(CreateDeletedSaleResponse);
+    }
 
-            return new OkObjectResult(new ApiResponseWithData<DeleteSaleResult>
-            {
-                Success = true,
-                Message = "Sale deleted successfully",
-                Data = apiResult
-            });
+    private IActionResult CreateListSalesResponse(Application.Common.Pagination.PagedResponse<ListSaleResponse> response)
+    {
+        var apiResult = _mapper.Map<IReadOnlyCollection<ListSaleResult>>(response.Items);
+
+        return new OkObjectResult(new PaginatedResponse<ListSaleResult>
+        {
+            Success = true,
+            Message = "Sales retrieved successfully",
+            Data = apiResult,
+            CurrentPage = response.CurrentPage,
+            TotalPages = response.TotalPages,
+            TotalItems = response.TotalItems
+        });
+    }
+
+    private IActionResult CreateGetSaleResponse(GetSaleResponse response)
+    {
+        var apiResult = _mapper.Map<GetSaleResult>(response);
+
+        return new OkObjectResult(new ApiResponseWithData<GetSaleResult>
+        {
+            Success = true,
+            Message = "Sale retrieved successfully",
+            Data = apiResult
+        });
+    }
+
+    private IActionResult CreateCreatedSaleResponse(CreateSaleResponse response)
+    {
+        var apiResult = _mapper.Map<CreateSaleResult>(response);
+
+        return Created($"/api/sales/{apiResult.Id}", new ApiResponseWithData<CreateSaleResult>
+        {
+            Success = true,
+            Message = "Sale created successfully",
+            Data = apiResult
+        });
+    }
+
+    private IActionResult CreateUpdatedSaleResponse(UpdateSaleResponse response)
+    {
+        var apiResult = _mapper.Map<UpdateSaleResult>(response);
+
+        return new OkObjectResult(new ApiResponseWithData<UpdateSaleResult>
+        {
+            Success = true,
+            Message = "Sale updated successfully",
+            Data = apiResult
+        });
+    }
+
+    private IActionResult CreateDeletedSaleResponse(DeleteSaleResponse response)
+    {
+        var apiResult = _mapper.Map<DeleteSaleResult>(response);
+
+        return new OkObjectResult(new ApiResponseWithData<DeleteSaleResult>
+        {
+            Success = true,
+            Message = "Sale deleted successfully",
+            Data = apiResult
         });
     }
 }
