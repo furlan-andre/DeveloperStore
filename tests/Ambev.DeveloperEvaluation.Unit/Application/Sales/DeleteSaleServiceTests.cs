@@ -8,6 +8,7 @@ using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.TestUtils.Domain.Sales.Builders;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
+using Ambev.DeveloperEvaluation.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
@@ -26,7 +27,7 @@ public class DeleteSaleServiceTests
         _saleRepository = Substitute.For<ISaleRepository>();
         _salesEventPublisher = Substitute.For<ISalesEventPublisher>();
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<DeleteSaleProfile>();
         });
@@ -41,7 +42,7 @@ public class DeleteSaleServiceTests
     [Fact(DisplayName = "Should have valid AutoMapper configuration")]
     public void Given_DeleteSaleProfile_When_ValidatingAutoMapper_Then_ShouldBeValid()
     {
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<DeleteSaleProfile>();
         });

@@ -4,6 +4,7 @@ using Ambev.DeveloperEvaluation.Application.Sales.Service;
 using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
+using Ambev.DeveloperEvaluation.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
@@ -19,7 +20,7 @@ public class CreateSaleHandlerTests
     {
         _createSaleService = Substitute.For<ICreateSaleService>();
         
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<CreateSaleProfile>();
         });
