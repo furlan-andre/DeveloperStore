@@ -1,5 +1,7 @@
+using Ambev.DeveloperEvaluation.Application.Messaging;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
+using Ambev.DeveloperEvaluation.Application.Sales.Events;
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
@@ -12,15 +14,18 @@ public class CreateSaleService : ICreateSaleService
     private readonly ISaleRepository _saleRepository;
     private readonly ISaleDiscountPolicy _discountPolicy;
     private readonly IMapper _mapper;
+    private readonly ISalesEventPublisher _salesEventPublisher;
 
     public CreateSaleService(
         ISaleRepository saleRepository,
         ISaleDiscountPolicy discountPolicy,
-        IMapper mapper)
+        IMapper mapper,
+        ISalesEventPublisher salesEventPublisher)
     {
         _saleRepository = saleRepository;
         _discountPolicy = discountPolicy;
         _mapper = mapper;
+        _salesEventPublisher = salesEventPublisher;
     }
 
     public async Task<CreateSaleResponse> CreateAsync(
@@ -41,6 +46,7 @@ public class CreateSaleService : ICreateSaleService
             items);
 
         await _saleRepository.AddAsync(sale, cancellationToken);
+        await _salesEventPublisher.PublishAsync(CreateSaleCreatedEvent(sale), cancellationToken);
 
         return _mapper.Map<CreateSaleResponse>(sale);
     }
@@ -49,5 +55,20 @@ public class CreateSaleService : ICreateSaleService
     {
         var product = new Product(item.ProductId, item.ProductDescription);
         return new SaleItem(product, item.Quantity, item.UnitPrice, _discountPolicy);
+    }
+
+    private static SaleCreatedEvent CreateSaleCreatedEvent(Sale sale)
+    {
+        return new SaleCreatedEvent(
+            sale.Id,
+            sale.SaleNumber,
+            sale.Customer.Id,
+            sale.Customer.Name,
+            sale.Branch.Id,
+            sale.Branch.Name,
+            sale.TotalSaleAmount,
+            sale.Active,
+            Guid.NewGuid(),
+            DateTime.UtcNow);
     }
 }
