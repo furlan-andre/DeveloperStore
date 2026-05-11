@@ -1,10 +1,12 @@
-﻿using Ambev.DeveloperEvaluation.Common.Validation;
+﻿using System.Diagnostics.CodeAnalysis;
+using Ambev.DeveloperEvaluation.Common.Validation;
 using Ambev.DeveloperEvaluation.WebApi.Common;
 using FluentValidation;
 using System.Text.Json;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Middleware
 {
+    [ExcludeFromCodeCoverage]
     public class ValidationExceptionMiddleware
     {
         private readonly RequestDelegate _next;

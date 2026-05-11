@@ -1,7 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using Ambev.DeveloperEvaluation.Application;
 using Ambev.DeveloperEvaluation.Common.HealthChecks;
 using Ambev.DeveloperEvaluation.Common.Logging;
-using Ambev.DeveloperEvaluation.Common.Security;
 using Ambev.DeveloperEvaluation.Common.Validation;
 using Ambev.DeveloperEvaluation.IoC;
 using Ambev.DeveloperEvaluation.ORM;
@@ -13,6 +13,7 @@ using Serilog;
 
 namespace Ambev.DeveloperEvaluation.WebApi;
 
+[ExcludeFromCodeCoverage]
 public class Program
 {
     public static void Main(string[] args)
@@ -37,8 +38,6 @@ public class Program
                     b => b.MigrationsAssembly("Ambev.DeveloperEvaluation.ORM")
                 )
             );
-
-            builder.Services.AddJwtAuthentication(builder.Configuration);
 
             builder.RegisterDependencies();
 

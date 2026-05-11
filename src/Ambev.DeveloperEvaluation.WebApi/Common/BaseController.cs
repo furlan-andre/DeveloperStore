@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Common;
 
+[ExcludeFromCodeCoverage]
 [Route("api/[controller]")]
 [ApiController]
 public class BaseController : ControllerBase
