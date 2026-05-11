@@ -9,6 +9,7 @@ using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
+using Ambev.DeveloperEvaluation.Unit.Common;
 using FluentAssertions;
 using NSubstitute;
 using Xunit;
@@ -26,7 +27,7 @@ public class CreateSaleServiceTests
     {
         _saleRepository = Substitute.For<ISaleRepository>();
         _salesEventPublisher = Substitute.For<ISalesEventPublisher>();
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<CreateSaleProfile>();
         });
@@ -41,7 +42,7 @@ public class CreateSaleServiceTests
     [Fact(DisplayName = "Should have valid AutoMapper configuration")]
     public void Given_CreateSaleProfile_When_ValidatingAutoMapper_Then_ShouldBeValid()
     {
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<CreateSaleProfile>();
         });

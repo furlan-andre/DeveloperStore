@@ -20,6 +20,7 @@ using Ambev.DeveloperEvaluation.WebApi.Features.Sales.ListSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSaleItem;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.UpdateSales;
 using AutoMapper;
+using Ambev.DeveloperEvaluation.Unit.Common;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -289,7 +290,7 @@ public class SalesControllerTests
             .WithItems([itemInput])
             .Build();
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<WebApiCreateSaleProfile>();
         });
@@ -331,7 +332,7 @@ public class SalesControllerTests
             Items = [itemResponse]
         };
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<WebApiCreateSaleProfile>();
         });
@@ -445,7 +446,7 @@ public class SalesControllerTests
             .WithItems([itemInput])
             .Build();
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<WebApiUpdateSaleProfile>();
         });
@@ -476,7 +477,7 @@ public class SalesControllerTests
             ]
         };
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<WebApiUpdateSaleProfile>();
         });
@@ -566,7 +567,7 @@ public class SalesControllerTests
             Active = active
         };
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<WebApiDeleteSaleProfile>();
         });
@@ -601,7 +602,7 @@ public class SalesControllerTests
             Items = [itemResponse]
         };
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<WebApiGetSaleProfile>();
         });
@@ -642,7 +643,7 @@ public class SalesControllerTests
             Active = true
         };
 
-        var mapperConfiguration = new MapperConfiguration(configuration =>
+        var mapperConfiguration = AutoMapperTestHelper.CreateConfiguration(configuration =>
         {
             configuration.AddProfile<WebApiListSalesProfile>();
         });
