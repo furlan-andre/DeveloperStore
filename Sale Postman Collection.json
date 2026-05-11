@@ -1,0 +1,475 @@
+{
+  "info": {
+    "_postman_id": "7d2936de-13a2-4eba-8e81-5082960b0cec",
+    "name": "DeveloperStore - Sales API",
+    "description": "Postman collection for testing the Sales API endpoints based on functional tests. Contains test cases for CREATE, READ, UPDATE, DELETE, and LIST operations with validation and domain rule error handling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "13099706"
+  },
+  "item": [
+    {
+      "name": "1. CREATE SALES",
+      "item": [
+        {
+          "name": "✅ Create Sale - Valid Payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"SALE-001-{{$timestamp}}\",\n  \"saleDate\": \"{{$isoTimestamp}}\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"customerName\": \"John Doe\",\n  \"branchId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"branchName\": \"Main Branch\",\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"productDescription\": \"Sample Product\",\n      \"quantity\": 4,\n      \"unitPrice\": 100.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sales",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales"
+              ]
+            },
+            "description": "Creates a sale with a valid payload.\nExpected: 201 Created\nExpected Discount: 40.00 (10% for quantity >= 4)\nExpected Item Total: 360.00 (400 - 40)\nExpected Sale Total: 360.00"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Create Sale - Invalid Payload (Empty SaleNumber)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"\",\n  \"saleDate\": \"{{$isoTimestamp}}\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"customerName\": \"Jane Doe\",\n  \"branchId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"branchName\": \"Main Branch\",\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"productDescription\": \"Sample Product\",\n      \"quantity\": 2,\n      \"unitPrice\": 50.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sales",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales"
+              ]
+            },
+            "description": "Attempts to create a sale with an empty SaleNumber.\nExpected: 400 Bad Request\nExpected Error Type: ValidationError\nExpected Error: Invalid input data"
+          },
+          "response": []
+        },
+        {
+          "name": "⚠️ Create Sale - Domain Rule Violation (Quantity > 20)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"SALE-EXCESSIVE-{{$timestamp}}\",\n  \"saleDate\": \"{{$isoTimestamp}}\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"customerName\": \"John Doe\",\n  \"branchId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"branchName\": \"Main Branch\",\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"productDescription\": \"Sample Product\",\n      \"quantity\": 21,\n      \"unitPrice\": 100.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sales",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales"
+              ]
+            },
+            "description": "Attempts to create a sale with excessive quantity (>20 items).\nExpected: 400 Bad Request\nExpected Error Type: DomainRuleViolation\nExpected Error: Sale domain rule violated"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. LIST SALES",
+      "item": [
+        {
+          "name": "✅ List Sales - Paginated",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/sales?_page=1&_size=10",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "_page",
+                  "value": "1"
+                },
+                {
+                  "key": "_size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lists sales with pagination.\nExpected: 200 OK\nReturns paginated response with sales data"
+          },
+          "response": []
+        },
+        {
+          "name": "✅ List Sales - Filter by SaleNumber",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/sales?saleNumber=SALE-001*",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "saleNumber",
+                  "value": "SALE-001*"
+                }
+              ]
+            },
+            "description": "Lists sales filtered by SaleNumber.\nExpected: 200 OK\nReturns matching sales only"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ List Sales - Invalid Order Field",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/sales?_order=invalidField",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "_order",
+                  "value": "invalidField"
+                }
+              ]
+            },
+            "description": "Attempts to list sales with an invalid order field.\nExpected: 400 Bad Request\nExpected Error Type: ValidationError\nExpected Error: Invalid input data"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. GET SALE",
+      "item": [
+        {
+          "name": "✅ Get Sale by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleId}}"
+              ]
+            },
+            "description": "Retrieves a specific sale by ID.\nExpected: 200 OK\nUpdate the {{saleId}} variable with a valid sale ID from a Create response"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Get Sale - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleIdInvalid}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleIdInvalid}}"
+              ]
+            },
+            "description": "Attempts to retrieve a non-existent sale.\nExpected: 404 Not Found\nExpected Error Type: ResourceNotFound\nExpected Error: Sale not found"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. UPDATE SALES",
+      "item": [
+        {
+          "name": "✅ Update Sale - Valid Payload",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"SALE-UPDATED-{{$timestamp}}\",\n  \"saleDate\": \"{{$isoTimestamp}}\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"customerName\": \"Updated Customer Name\",\n  \"branchId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"branchName\": \"Updated Branch\",\n  \"active\": true,\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"productDescription\": \"Updated Product\",\n      \"quantity\": 5,\n      \"unitPrice\": 120.00,\n      \"active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleId}}"
+              ]
+            },
+            "description": "Updates an existing sale with new data.\nExpected: 200 OK\nUpdate the {{saleId}} variable with a valid sale ID"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Update Sale - Not Found",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"SALE-UPD-{{$timestamp}}\",\n  \"saleDate\": \"{{$isoTimestamp}}\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"customerName\": \"Customer\",\n  \"branchId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"branchName\": \"Branch\",\n  \"active\": true,\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"productDescription\": \"Product\",\n      \"quantity\": 5,\n      \"unitPrice\": 100.00,\n      \"active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleIdInvalid}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleIdInvalid}}"
+              ]
+            },
+            "description": "Attempts to update a non-existent sale.\nExpected: 404 Not Found\nExpected Error Type: ResourceNotFound\nExpected Error: Sale not found"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Update Sale - Invalid Payload (Empty SaleNumber)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"\",\n  \"saleDate\": \"{{$isoTimestamp}}\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"customerName\": \"Customer\",\n  \"branchId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"branchName\": \"Branch\",\n  \"active\": true,\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"productDescription\": \"Product\",\n      \"quantity\": 5,\n      \"unitPrice\": 100.00,\n      \"active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleId}}"
+              ]
+            },
+            "description": "Attempts to update a sale with an empty SaleNumber.\nExpected: 400 Bad Request\nExpected Error Type: ValidationError\nExpected Error: Invalid input data"
+          },
+          "response": []
+        },
+        {
+          "name": "✅ Update Sale - Deactivate Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"SALE-DEACTIVATE-{{$timestamp}}\",\n  \"saleDate\": \"{{$isoTimestamp}}\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"customerName\": \"Customer\",\n  \"branchId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"branchName\": \"Branch\",\n  \"active\": true,\n  \"items\": [\n    {\n      \"id\": \"{{itemId}}\",\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"productDescription\": \"Product\",\n      \"quantity\": 5,\n      \"unitPrice\": 100.00,\n      \"active\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleId}}"
+              ]
+            },
+            "description": "Updates a sale to deactivate a specific item.\nExpected: 200 OK\nUpdate {{saleId}} and {{itemId}} variables with valid IDs"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. DELETE SALES",
+      "item": [
+        {
+          "name": "✅ Delete Sale",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleId}}"
+              ]
+            },
+            "description": "Deletes a sale (marks as inactive).\nExpected: 200 OK\nNote: The API marks sales as inactive rather than physically deleting them\nUpdate the {{saleId}} variable with a valid sale ID"
+          },
+          "response": []
+        },
+        {
+          "name": "❌ Delete Sale - Not Found",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/sales/{{saleIdInvalid}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "sales",
+                "{{saleIdInvalid}}"
+              ]
+            },
+            "description": "Attempts to delete a non-existent sale.\nExpected: 404 Not Found\nExpected Error Type: ResourceNotFound\nExpected Error: Sale not found"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "saleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "itemId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
