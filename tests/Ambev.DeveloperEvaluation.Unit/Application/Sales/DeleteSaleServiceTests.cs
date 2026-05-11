@@ -84,9 +84,10 @@ public class DeleteSaleServiceTests
 
         _saleRepository.GetByIdAsync(saleId, Arg.Any<CancellationToken>()).Returns((Sale?)null);
 
-        var action = async () => await _service.DeleteAsync(request);
+        var result = await _service.DeleteAsync(request);
 
-        await action.Should().ThrowAsync<KeyNotFoundException>();
+        result.IsFailure.Should().BeTrue();
+        result.Error.Type.Should().Be("ResourceNotFound");
         await _saleRepository.DidNotReceive().DeleteAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
         await _salesEventPublisher.DidNotReceive().PublishAsync(
             Arg.Any<SaleCancelledEvent>(),
@@ -103,8 +104,10 @@ public class DeleteSaleServiceTests
 
         _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
 
-        var response = await _service.DeleteAsync(request);
+        var result = await _service.DeleteAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         sale.Active.Should().BeFalse();
         response.Id.Should().Be(sale.Id);
         response.Active.Should().BeFalse();
@@ -148,8 +151,10 @@ public class DeleteSaleServiceTests
 
         _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
 
-        var response = await _service.DeleteAsync(request);
+        var result = await _service.DeleteAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         sale.Active.Should().BeFalse();
         response.Active.Should().BeFalse();
     }

@@ -85,9 +85,10 @@ public class UpdateSaleServiceTests
 
         _saleRepository.GetByIdAsync(saleId, Arg.Any<CancellationToken>()).Returns((Sale?)null);
 
-        var action = async () => await _service.UpdateAsync(request);
+        var result = await _service.UpdateAsync(request);
 
-        await action.Should().ThrowAsync<KeyNotFoundException>();
+        result.IsFailure.Should().BeTrue();
+        result.Error.Type.Should().Be("ResourceNotFound");
         await _saleRepository.DidNotReceive().UpdateAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
         await _salesEventPublisher.DidNotReceive().PublishAsync(
             Arg.Any<SaleModifiedEvent>(),
@@ -364,8 +365,10 @@ public class UpdateSaleServiceTests
 
         _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
 
-        var response = await _service.UpdateAsync(request);
+        var result = await _service.UpdateAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.Items.Should().ContainSingle();
         response.Items.Should().Contain(item => item.Id == keptItem.Id);
         response.Items.Should().NotContain(item => item.Id == removedItem.Id);
@@ -409,8 +412,10 @@ public class UpdateSaleServiceTests
 
         _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
 
-        var response = await _service.UpdateAsync(request);
+        var result = await _service.UpdateAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.Items.Should().HaveCount(2);
         response.Items.Should().Contain(item => item.Id == existingItem.Id);
 
@@ -468,8 +473,10 @@ public class UpdateSaleServiceTests
 
         _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
 
-        var response = await _service.UpdateAsync(request);
+        var result = await _service.UpdateAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.Items.Should().HaveCount(2);
         response.Items.Single(item => item.Id == activeItem.Id).Active.Should().BeTrue();
         response.Items.Single(item => item.Id == itemToInactivate.Id).Active.Should().BeFalse();
@@ -487,8 +494,10 @@ public class UpdateSaleServiceTests
 
         _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
 
-        var response = await _service.UpdateAsync(request);
+        var result = await _service.UpdateAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.Id.Should().Be(sale.Id);
         response.SaleNumber.Should().Be(request.SaleNumber);
         response.SaleDate.Should().Be(request.SaleDate);

@@ -1,9 +1,10 @@
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSaleItem;
+using Ambev.DeveloperEvaluation.Common.Results;
 using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 
-public sealed record CreateSaleCommand : IRequest<CreateSaleResponse>
+public sealed record CreateSaleCommand : IRequest<Result<CreateSaleResponse>>
 {
     public string SaleNumber { get; set; } = string.Empty;
     public DateTime SaleDate { get; set; }

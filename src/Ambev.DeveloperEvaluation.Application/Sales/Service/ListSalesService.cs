@@ -1,5 +1,6 @@
 using Ambev.DeveloperEvaluation.Application.Common.Pagination;
 using Ambev.DeveloperEvaluation.Application.Sales.ListSales;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.Domain.Repositories.Sales;
 using AutoMapper;
@@ -17,7 +18,7 @@ public class ListSalesService : IListSalesService
         _mapper = mapper;
     }
 
-    public async Task<PagedResponse<ListSaleResponse>> ListAsync(
+    public async Task<Result<PagedResponse<ListSaleResponse>>> ListAsync(
         ListSalesRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -33,7 +34,7 @@ public class ListSalesService : IListSalesService
             },
             cancellationToken);
 
-        return new PagedResponse<ListSaleResponse>
+        var response = new PagedResponse<ListSaleResponse>
         {
             Items = _mapper.Map<IReadOnlyCollection<ListSaleResponse>>(result.Items),
             CurrentPage = result.CurrentPage,
@@ -41,5 +42,7 @@ public class ListSalesService : IListSalesService
             TotalItems = result.TotalItems,
             PageSize = result.PageSize
         };
+
+        return Result<PagedResponse<ListSaleResponse>>.Success(response);
     }
 }

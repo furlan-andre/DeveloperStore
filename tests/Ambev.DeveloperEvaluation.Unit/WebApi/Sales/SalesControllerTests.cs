@@ -7,9 +7,11 @@ using Ambev.DeveloperEvaluation.Application.Sales.GetSaleItem;
 using Ambev.DeveloperEvaluation.Application.Sales.ListSales;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSaleItem;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.CreateSales;
 using Ambev.DeveloperEvaluation.Unit.WebApi.Sales.UpdateSales;
 using Ambev.DeveloperEvaluation.WebApi.Common;
+using Ambev.DeveloperEvaluation.WebApi.Common.Errors;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.DeleteSales;
@@ -66,7 +68,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<ListSalesCommand>(), Arg.Any<CancellationToken>())
-            .Returns(applicationResponse);
+            .Returns(Result<PagedResponse<ListSaleResponse>>.Success(applicationResponse));
         _mapper.Map<IReadOnlyCollection<ListSaleResult>>(applicationResponse.Items).Returns(apiResult);
 
         await _controller.ListSales(CancellationToken.None);
@@ -94,7 +96,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<ListSalesCommand>(), cancellationToken)
-            .Returns(applicationResponse);
+            .Returns(Result<PagedResponse<ListSaleResponse>>.Success(applicationResponse));
         _mapper.Map<IReadOnlyCollection<ListSaleResult>>(applicationResponse.Items).Returns(apiResult);
 
         await _controller.ListSales(cancellationToken);
@@ -128,7 +130,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<ListSalesCommand>(), Arg.Any<CancellationToken>())
-            .Returns(applicationResponse);
+            .Returns(Result<PagedResponse<ListSaleResponse>>.Success(applicationResponse));
         
         _mapper.Map<IReadOnlyCollection<ListSaleResult>>(applicationResponse.Items).Returns(apiResult);
 
@@ -155,7 +157,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<GetSaleCommand>(), Arg.Any<CancellationToken>())
-            .Returns(applicationResponse);
+            .Returns(Result<GetSaleResponse>.Success(applicationResponse));
         _mapper.Map<GetSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.GetSale(saleId, CancellationToken.None);
@@ -177,7 +179,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<GetSaleCommand>(), cancellationToken)
-            .Returns(applicationResponse);
+            .Returns(Result<GetSaleResponse>.Success(applicationResponse));
         _mapper.Map<GetSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.GetSale(saleId, cancellationToken);
@@ -198,7 +200,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<GetSaleCommand>(), Arg.Any<CancellationToken>())
-            .Returns(applicationResponse);
+            .Returns(Result<GetSaleResponse>.Success(applicationResponse));
         
         _mapper.Map<GetSaleResult>(applicationResponse).Returns(apiResult);
 
@@ -222,7 +224,8 @@ public class SalesControllerTests
         var apiResult = new CreateSaleResult { Id = applicationResponse.Id, SaleNumber = applicationResponse.SaleNumber };
         
         _mapper.Map<CreateSaleCommand>(input).Returns(command);
-        _mediator.Send(command, Arg.Any<CancellationToken>()).Returns(applicationResponse);
+        _mediator.Send(command, Arg.Any<CancellationToken>())
+            .Returns(Result<CreateSaleResponse>.Success(applicationResponse));
         _mapper.Map<CreateSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.CreateSale(input, CancellationToken.None);
@@ -242,7 +245,7 @@ public class SalesControllerTests
         var cancellationToken = new CancellationTokenSource().Token;
         
         _mapper.Map<CreateSaleCommand>(input).Returns(command);
-        _mediator.Send(command, cancellationToken).Returns(applicationResponse);
+        _mediator.Send(command, cancellationToken).Returns(Result<CreateSaleResponse>.Success(applicationResponse));
         _mapper.Map<CreateSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.CreateSale(input, cancellationToken);
@@ -262,7 +265,8 @@ public class SalesControllerTests
         var expectedMessage = "Sale created successfully";
         
         _mapper.Map<CreateSaleCommand>(input).Returns(command);
-        _mediator.Send(command, Arg.Any<CancellationToken>()).Returns(applicationResponse);
+        _mediator.Send(command, Arg.Any<CancellationToken>())
+            .Returns(Result<CreateSaleResponse>.Success(applicationResponse));
         _mapper.Map<CreateSaleResult>(applicationResponse).Returns(apiResult);
 
         var actionResult = await _controller.CreateSale(input, CancellationToken.None);
@@ -361,7 +365,8 @@ public class SalesControllerTests
         var apiResult = new UpdateSaleResult { Id = applicationResponse.Id, SaleNumber = applicationResponse.SaleNumber };
 
         _mapper.Map<UpdateSaleCommand>(input).Returns(command);
-        _mediator.Send(command, Arg.Any<CancellationToken>()).Returns(applicationResponse);
+        _mediator.Send(command, Arg.Any<CancellationToken>())
+            .Returns(Result<UpdateSaleResponse>.Success(applicationResponse));
         _mapper.Map<UpdateSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.UpdateSale(saleId, input, CancellationToken.None);
@@ -383,7 +388,7 @@ public class SalesControllerTests
         var cancellationToken = new CancellationTokenSource().Token;
 
         _mapper.Map<UpdateSaleCommand>(input).Returns(command);
-        _mediator.Send(command, cancellationToken).Returns(applicationResponse);
+        _mediator.Send(command, cancellationToken).Returns(Result<UpdateSaleResponse>.Success(applicationResponse));
         _mapper.Map<UpdateSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.UpdateSale(saleId, input, cancellationToken);
@@ -409,7 +414,8 @@ public class SalesControllerTests
         var expectedMessage = "Sale updated successfully";
 
         _mapper.Map<UpdateSaleCommand>(input).Returns(command);
-        _mediator.Send(command, Arg.Any<CancellationToken>()).Returns(applicationResponse);
+        _mediator.Send(command, Arg.Any<CancellationToken>())
+            .Returns(Result<UpdateSaleResponse>.Success(applicationResponse));
         _mapper.Map<UpdateSaleResult>(applicationResponse).Returns(apiResult);
 
         var actionResult = await _controller.UpdateSale(saleId, input, CancellationToken.None);
@@ -492,7 +498,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<DeleteSaleCommand>(), Arg.Any<CancellationToken>())
-            .Returns(applicationResponse);
+            .Returns(Result<DeleteSaleResponse>.Success(applicationResponse));
         _mapper.Map<DeleteSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.DeleteSale(saleId, CancellationToken.None);
@@ -513,7 +519,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<DeleteSaleCommand>(), cancellationToken)
-            .Returns(applicationResponse);
+            .Returns(Result<DeleteSaleResponse>.Success(applicationResponse));
         _mapper.Map<DeleteSaleResult>(applicationResponse).Returns(apiResult);
 
         await _controller.DeleteSale(saleId, cancellationToken);
@@ -534,7 +540,7 @@ public class SalesControllerTests
 
         _mediator
             .Send(Arg.Any<DeleteSaleCommand>(), Arg.Any<CancellationToken>())
-            .Returns(applicationResponse);
+            .Returns(Result<DeleteSaleResponse>.Success(applicationResponse));
         _mapper.Map<DeleteSaleResult>(applicationResponse).Returns(apiResult);
 
         var actionResult = await _controller.DeleteSale(saleId, CancellationToken.None);
@@ -655,6 +661,86 @@ public class SalesControllerTests
         result.Active.Should().BeTrue();
     }
 
+    [Fact(DisplayName = "Should return error response when listing sales fails")]
+    public async Task Given_FailureResult_When_ListingSales_Then_ShouldReturnErrorResponse()
+    {
+        var error = Error.Validation("Invalid input data", "Order field is unsupported.");
+        ConfigureQueryString("?_order=unsupported");
+
+        _mediator
+            .Send(Arg.Any<ListSalesCommand>(), Arg.Any<CancellationToken>())
+            .Returns(Result<PagedResponse<ListSaleResponse>>.Failure(error));
+
+        var actionResult = await _controller.ListSales(CancellationToken.None);
+
+        AssertErrorResponse(actionResult, StatusCodes.Status400BadRequest, error);
+    }
+
+    [Fact(DisplayName = "Should return error response when getting sale fails")]
+    public async Task Given_FailureResult_When_GettingSale_Then_ShouldReturnErrorResponse()
+    {
+        var saleId = Guid.NewGuid();
+        var error = Error.ResourceNotFound("Sale not found", $"The sale with ID {saleId} does not exist.");
+
+        _mediator
+            .Send(Arg.Any<GetSaleCommand>(), Arg.Any<CancellationToken>())
+            .Returns(Result<GetSaleResponse>.Failure(error));
+
+        var actionResult = await _controller.GetSale(saleId, CancellationToken.None);
+
+        AssertErrorResponse(actionResult, StatusCodes.Status404NotFound, error);
+    }
+
+    [Fact(DisplayName = "Should return error response when creating sale fails")]
+    public async Task Given_FailureResult_When_CreatingSale_Then_ShouldReturnErrorResponse()
+    {
+        var input = new CreateSaleInputTestBuilder().Build();
+        var command = new CreateSaleCommand();
+        var error = Error.DomainRuleViolation("Sale domain rule violated", "Invalid sale item quantity.");
+
+        _mapper.Map<CreateSaleCommand>(input).Returns(command);
+        _mediator
+            .Send(command, Arg.Any<CancellationToken>())
+            .Returns(Result<CreateSaleResponse>.Failure(error));
+
+        var actionResult = await _controller.CreateSale(input, CancellationToken.None);
+
+        AssertErrorResponse(actionResult, StatusCodes.Status400BadRequest, error);
+    }
+
+    [Fact(DisplayName = "Should return error response when updating sale fails")]
+    public async Task Given_FailureResult_When_UpdatingSale_Then_ShouldReturnErrorResponse()
+    {
+        var saleId = Guid.NewGuid();
+        var input = new UpdateSaleInputTestBuilder().Build();
+        var command = new UpdateSaleCommand();
+        var error = Error.ResourceNotFound("Sale not found", $"The sale with ID {saleId} does not exist.");
+
+        _mapper.Map<UpdateSaleCommand>(input).Returns(command);
+        _mediator
+            .Send(command, Arg.Any<CancellationToken>())
+            .Returns(Result<UpdateSaleResponse>.Failure(error));
+
+        var actionResult = await _controller.UpdateSale(saleId, input, CancellationToken.None);
+
+        AssertErrorResponse(actionResult, StatusCodes.Status404NotFound, error);
+    }
+
+    [Fact(DisplayName = "Should return error response when deleting sale fails")]
+    public async Task Given_FailureResult_When_DeletingSale_Then_ShouldReturnErrorResponse()
+    {
+        var saleId = Guid.NewGuid();
+        var error = Error.ResourceNotFound("Sale not found", $"The sale with ID {saleId} does not exist.");
+
+        _mediator
+            .Send(Arg.Any<DeleteSaleCommand>(), Arg.Any<CancellationToken>())
+            .Returns(Result<DeleteSaleResponse>.Failure(error));
+
+        var actionResult = await _controller.DeleteSale(saleId, CancellationToken.None);
+
+        AssertErrorResponse(actionResult, StatusCodes.Status404NotFound, error);
+    }
+
     private void ConfigureQueryString(string queryString)
     {
         _controller.ControllerContext = new ControllerContext
@@ -667,5 +753,16 @@ public class SalesControllerTests
                 }
             }
         };
+    }
+
+    private static void AssertErrorResponse(IActionResult actionResult, int expectedStatusCode, Error error)
+    {
+        var objectResult = actionResult.Should().BeOfType<ObjectResult>().Subject;
+        var errorResponse = objectResult.Value.Should().BeOfType<ErrorResponse>().Subject;
+
+        objectResult.StatusCode.Should().Be(expectedStatusCode);
+        errorResponse.Type.Should().Be(error.Type);
+        errorResponse.Error.Should().Be(error.ErrorMessage);
+        errorResponse.Detail.Should().Be(error.Detail);
     }
 }

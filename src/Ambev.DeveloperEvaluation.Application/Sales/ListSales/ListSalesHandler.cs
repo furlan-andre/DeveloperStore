@@ -1,11 +1,12 @@
 using Ambev.DeveloperEvaluation.Application.Common.Pagination;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
+using Ambev.DeveloperEvaluation.Common.Results;
 using AutoMapper;
 using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.ListSales;
 
-public class ListSalesHandler : IRequestHandler<ListSalesCommand, PagedResponse<ListSaleResponse>>
+public class ListSalesHandler : IRequestHandler<ListSalesCommand, Result<PagedResponse<ListSaleResponse>>>
 {
     private readonly IListSalesService _listSalesService;
     private readonly IMapper _mapper;
@@ -16,7 +17,7 @@ public class ListSalesHandler : IRequestHandler<ListSalesCommand, PagedResponse<
         _mapper = mapper;
     }
 
-    public async Task<PagedResponse<ListSaleResponse>> Handle(
+    public async Task<Result<PagedResponse<ListSaleResponse>>> Handle(
         ListSalesCommand command,
         CancellationToken cancellationToken)
     {

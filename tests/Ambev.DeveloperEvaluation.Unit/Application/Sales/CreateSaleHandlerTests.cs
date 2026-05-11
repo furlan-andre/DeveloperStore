@@ -1,6 +1,7 @@
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
 using FluentAssertions;
@@ -37,11 +38,12 @@ public class CreateSaleHandlerTests
         
         _createSaleService
             .CreateAsync(Arg.Any<CreateSaleRequest>(), Arg.Any<CancellationToken>())
-            .Returns(expectedResponse);
+            .Returns(Result<CreateSaleResponse>.Success(expectedResponse));
 
         var response = await _handler.Handle(command, CancellationToken.None);
 
-        response.Should().BeSameAs(expectedResponse);
+        response.IsSuccess.Should().BeTrue();
+        response.Value.Should().BeSameAs(expectedResponse);
         
         await _createSaleService.Received(1).CreateAsync(
             Arg.Any<CreateSaleRequest>(),
@@ -56,6 +58,11 @@ public class CreateSaleHandlerTests
         var command = new CreateSaleCommandTestBuilder()
             .WithItems([itemCommand])
             .Build();
+        var expectedResponse = new CreateSaleResponse { Id = Guid.NewGuid() };
+
+        _createSaleService
+            .CreateAsync(Arg.Any<CreateSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<CreateSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, CancellationToken.None);
 
@@ -80,6 +87,11 @@ public class CreateSaleHandlerTests
     {
         var command = new CreateSaleCommandTestBuilder().Build();
         var cancellationToken = new CancellationTokenSource().Token;
+        var expectedResponse = new CreateSaleResponse { Id = Guid.NewGuid() };
+
+        _createSaleService
+            .CreateAsync(Arg.Any<CreateSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<CreateSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, cancellationToken);
 

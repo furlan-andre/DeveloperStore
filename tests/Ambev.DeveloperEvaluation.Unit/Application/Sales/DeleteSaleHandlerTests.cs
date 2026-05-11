@@ -1,6 +1,7 @@
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
 using FluentAssertions;
@@ -36,11 +37,12 @@ public class DeleteSaleHandlerTests
 
         _deleteSaleService
             .DeleteAsync(Arg.Any<DeleteSaleRequest>(), Arg.Any<CancellationToken>())
-            .Returns(expectedResponse);
+            .Returns(Result<DeleteSaleResponse>.Success(expectedResponse));
 
         var response = await _handler.Handle(command, CancellationToken.None);
 
-        response.Should().BeSameAs(expectedResponse);
+        response.IsSuccess.Should().BeTrue();
+        response.Value.Should().BeSameAs(expectedResponse);
 
         await _deleteSaleService.Received(1).DeleteAsync(
             Arg.Any<DeleteSaleRequest>(),
@@ -54,6 +56,11 @@ public class DeleteSaleHandlerTests
         var command = new DeleteSaleCommandTestBuilder()
             .WithId(saleId)
             .Build();
+        var expectedResponse = new DeleteSaleResponse { Id = saleId, Active = false };
+
+        _deleteSaleService
+            .DeleteAsync(Arg.Any<DeleteSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<DeleteSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, CancellationToken.None);
 
@@ -67,6 +74,11 @@ public class DeleteSaleHandlerTests
     {
         var command = new DeleteSaleCommandTestBuilder().Build();
         var cancellationToken = new CancellationTokenSource().Token;
+        var expectedResponse = new DeleteSaleResponse { Id = command.Id, Active = false };
+
+        _deleteSaleService
+            .DeleteAsync(Arg.Any<DeleteSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<DeleteSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, cancellationToken);
 

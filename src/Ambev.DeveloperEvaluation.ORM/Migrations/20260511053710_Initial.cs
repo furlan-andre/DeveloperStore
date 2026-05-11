@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Ambev.DeveloperEvaluation.ORM.Migrations
 {
     /// <inheritdoc />
-    public partial class AddSalesPersistence : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -41,6 +41,7 @@ namespace Ambev.DeveloperEvaluation.ORM.Migrations
                     unit_price = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     discount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     total_amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    active = table.Column<bool>(type: "boolean", nullable: false),
                     sale_id = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -68,7 +69,6 @@ namespace Ambev.DeveloperEvaluation.ORM.Migrations
 
             migrationBuilder.DropTable(
                 name: "sales");
-
         }
     }
 }

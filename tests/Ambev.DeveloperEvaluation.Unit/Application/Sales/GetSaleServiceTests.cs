@@ -77,9 +77,10 @@ public class GetSaleServiceTests
 
         _saleRepository.GetByIdAsNoTrackingAsync(saleId, Arg.Any<CancellationToken>()).Returns((Sale?)null);
 
-        var action = async () => await _service.GetByIdAsync(request);
+        var result = await _service.GetByIdAsync(request);
 
-        await action.Should().ThrowAsync<KeyNotFoundException>();
+        result.IsFailure.Should().BeTrue();
+        result.Error.Type.Should().Be("ResourceNotFound");
     }
 
     [Fact(DisplayName = "Should return sale response with items")]
@@ -102,8 +103,10 @@ public class GetSaleServiceTests
 
         _saleRepository.GetByIdAsNoTrackingAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
 
-        var response = await _service.GetByIdAsync(request);
+        var result = await _service.GetByIdAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.Id.Should().Be(sale.Id);
         response.SaleNumber.Should().Be(sale.SaleNumber);
         response.CustomerId.Should().Be(sale.Customer.Id);
