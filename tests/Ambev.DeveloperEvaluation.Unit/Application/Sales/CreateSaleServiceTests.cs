@@ -1,4 +1,6 @@
+using Ambev.DeveloperEvaluation.Application.Messaging;
 using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+using Ambev.DeveloperEvaluation.Application.Sales.Events;
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
@@ -16,18 +18,24 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales;
 public class CreateSaleServiceTests
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly ISalesEventPublisher _salesEventPublisher;
     private readonly IMapper _mapper;
     private readonly CreateSaleService _service;
 
     public CreateSaleServiceTests()
     {
         _saleRepository = Substitute.For<ISaleRepository>();
+        _salesEventPublisher = Substitute.For<ISalesEventPublisher>();
         var mapperConfiguration = new MapperConfiguration(configuration =>
         {
             configuration.AddProfile<CreateSaleProfile>();
         });
         _mapper = mapperConfiguration.CreateMapper();
-        _service = new CreateSaleService(_saleRepository, new SaleDiscountPolicy(), _mapper);
+        _service = new CreateSaleService(
+            _saleRepository,
+            new SaleDiscountPolicy(),
+            _mapper,
+            _salesEventPublisher);
     }
 
     [Fact(DisplayName = "Should have valid AutoMapper configuration")]
@@ -60,6 +68,44 @@ public class CreateSaleServiceTests
         await _service.CreateAsync(request);
 
         await _saleRepository.Received(1).AddAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should publish sale created event")]
+    public async Task Given_ValidRequest_When_CreatingSale_Then_ShouldPublishSaleCreatedEvent()
+    {
+        var request = new CreateSaleRequestTestBuilder().Build();
+
+        await _service.CreateAsync(request);
+
+        await _salesEventPublisher.Received(1).PublishAsync(
+            Arg.Is<SaleCreatedEvent>(saleEvent =>
+                saleEvent.SaleId != Guid.Empty &&
+                saleEvent.SaleNumber == request.SaleNumber &&
+                saleEvent.CustomerId == request.CustomerId &&
+                saleEvent.CustomerName == request.CustomerName &&
+                saleEvent.BranchId == request.BranchId &&
+                saleEvent.BranchName == request.BranchName &&
+                saleEvent.Active &&
+                saleEvent.EventId != Guid.Empty &&
+                saleEvent.OccurredAt != default),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should not publish sale created event when repository fails")]
+    public async Task Given_RepositoryFailure_When_CreatingSale_Then_ShouldNotPublishSaleCreatedEvent()
+    {
+        var request = new CreateSaleRequestTestBuilder().Build();
+        var exception = new InvalidOperationException("Repository failure");
+        _saleRepository
+            .AddAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw exception);
+
+        var action = async () => await _service.CreateAsync(request);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleCreatedEvent>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Should send sale data to repository")]

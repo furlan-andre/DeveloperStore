@@ -1,4 +1,6 @@
+using Ambev.DeveloperEvaluation.Application.Messaging;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
+using Ambev.DeveloperEvaluation.Application.Sales.Events;
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
@@ -15,12 +17,14 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales;
 public class DeleteSaleServiceTests
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly ISalesEventPublisher _salesEventPublisher;
     private readonly IMapper _mapper;
     private readonly DeleteSaleService _service;
 
     public DeleteSaleServiceTests()
     {
         _saleRepository = Substitute.For<ISaleRepository>();
+        _salesEventPublisher = Substitute.For<ISalesEventPublisher>();
 
         var mapperConfiguration = new MapperConfiguration(configuration =>
         {
@@ -28,7 +32,10 @@ public class DeleteSaleServiceTests
         });
 
         _mapper = mapperConfiguration.CreateMapper();
-        _service = new DeleteSaleService(_saleRepository, _mapper);
+        _service = new DeleteSaleService(
+            _saleRepository,
+            _mapper,
+            _salesEventPublisher);
     }
 
     [Fact(DisplayName = "Should have valid AutoMapper configuration")]
@@ -81,6 +88,9 @@ public class DeleteSaleServiceTests
 
         await action.Should().ThrowAsync<KeyNotFoundException>();
         await _saleRepository.DidNotReceive().DeleteAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleCancelledEvent>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Should logically delete sale")]
@@ -157,5 +167,70 @@ public class DeleteSaleServiceTests
         await _service.DeleteAsync(request);
 
         await _saleRepository.Received(1).DeleteAsync(sale, Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should publish sale cancelled event when active sale is deleted")]
+    public async Task Given_ActiveSale_When_DeletingSale_Then_ShouldPublishSaleCancelledEvent()
+    {
+        var sale = new SaleTestBuilder().Build();
+        var request = new DeleteSaleRequestTestBuilder()
+            .WithId(sale.Id)
+            .Build();
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+
+        await _service.DeleteAsync(request);
+
+        await _salesEventPublisher.Received(1).PublishAsync(
+            Arg.Is<SaleCancelledEvent>(saleEvent =>
+                saleEvent.SaleId == sale.Id &&
+                saleEvent.SaleNumber == sale.SaleNumber &&
+                saleEvent.EventId != Guid.Empty &&
+                saleEvent.OccurredAt != default &&
+                saleEvent.CancelledAt != default),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should not publish sale cancelled event when sale was already inactive")]
+    public async Task Given_InactiveSale_When_DeletingSale_Then_ShouldNotPublishSaleCancelledEvent()
+    {
+        var sale = new SaleTestBuilder().Build();
+        sale.Delete();
+        var request = new DeleteSaleRequestTestBuilder()
+            .WithId(sale.Id)
+            .Build();
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+
+        await _service.DeleteAsync(request);
+
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleCancelledEvent>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should not publish sale cancelled event when repository delete fails")]
+    public async Task Given_RepositoryFailure_When_DeletingSale_Then_ShouldNotPublishSaleCancelledEvent()
+    {
+        var sale = new SaleTestBuilder().Build();
+        var request = new DeleteSaleRequestTestBuilder()
+            .WithId(sale.Id)
+            .Build();
+        var exception = new InvalidOperationException("Repository failure");
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>())
+            .Returns(sale);
+        
+        _saleRepository
+            .DeleteAsync(sale, Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw exception);
+
+        var action = async () => await _service.DeleteAsync(request);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+        
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleCancelledEvent>(),
+            Arg.Any<CancellationToken>());
     }
 }
