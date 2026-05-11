@@ -54,8 +54,10 @@ public class CreateSaleServiceTests
     {
         var request = new CreateSaleRequestTestBuilder().Build();
 
-        var response = await _service.CreateAsync(request);
+        var result = await _service.CreateAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.Should().NotBeNull();
         response.Id.Should().NotBe(Guid.Empty);
     }
@@ -151,8 +153,10 @@ public class CreateSaleServiceTests
     {
         var request = new CreateSaleRequestTestBuilder().Build();
 
-        var response = await _service.CreateAsync(request);
+        var result = await _service.CreateAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.SaleNumber.Should().Be(request.SaleNumber);
         response.SaleDate.Should().Be(request.SaleDate);
         response.CustomerId.Should().Be(request.CustomerId);
@@ -180,8 +184,10 @@ public class CreateSaleServiceTests
             .WithItems([itemRequest])
             .Build();
 
-        var response = await _service.CreateAsync(request);
+        var result = await _service.CreateAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.TotalSaleAmount.Should().Be(expectedSaleTotal);
         response.Items.Should().ContainSingle();
         
@@ -204,16 +210,18 @@ public class CreateSaleServiceTests
         await action.Should().ThrowAsync<ArgumentNullException>();
     }
 
-    [Fact(DisplayName = "Should propagate DomainException when domain rejects invalid data")]
-    public async Task Given_InvalidRequest_When_CreatingSale_Then_ShouldPropagateDomainException()
+    [Fact(DisplayName = "Should return domain rule violation when domain rejects invalid data")]
+    public async Task Given_InvalidRequest_When_CreatingSale_Then_ShouldReturnDomainRuleViolation()
     {
         var saleNumber = string.Empty;
         var request = new CreateSaleRequestTestBuilder()
             .WithSaleNumber(saleNumber)
             .Build();
 
-        var action = async () => await _service.CreateAsync(request);
+        var result = await _service.CreateAsync(request);
 
-        await action.Should().ThrowAsync<DomainException>();
+        result.IsFailure.Should().BeTrue();
+        result.Error.Type.Should().Be("DomainRuleViolation");
+        await _saleRepository.DidNotReceive().AddAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
     }
 }

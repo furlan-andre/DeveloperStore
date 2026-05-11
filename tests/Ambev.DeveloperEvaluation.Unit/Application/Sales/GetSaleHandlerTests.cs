@@ -1,6 +1,7 @@
 using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
 using FluentAssertions;
@@ -36,11 +37,12 @@ public class GetSaleHandlerTests
 
         _getSaleService
             .GetByIdAsync(Arg.Any<GetSaleRequest>(), Arg.Any<CancellationToken>())
-            .Returns(expectedResponse);
+            .Returns(Result<GetSaleResponse>.Success(expectedResponse));
 
         var response = await _handler.Handle(command, CancellationToken.None);
 
-        response.Should().BeSameAs(expectedResponse);
+        response.IsSuccess.Should().BeTrue();
+        response.Value.Should().BeSameAs(expectedResponse);
 
         await _getSaleService.Received(1).GetByIdAsync(
             Arg.Any<GetSaleRequest>(),
@@ -54,6 +56,11 @@ public class GetSaleHandlerTests
         var command = new GetSaleCommandTestBuilder()
             .WithId(saleId)
             .Build();
+        var expectedResponse = new GetSaleResponse { Id = saleId };
+
+        _getSaleService
+            .GetByIdAsync(Arg.Any<GetSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<GetSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, CancellationToken.None);
 
@@ -67,6 +74,11 @@ public class GetSaleHandlerTests
     {
         var command = new GetSaleCommandTestBuilder().Build();
         var cancellationToken = new CancellationTokenSource().Token;
+        var expectedResponse = new GetSaleResponse { Id = command.Id };
+
+        _getSaleService
+            .GetByIdAsync(Arg.Any<GetSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<GetSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, cancellationToken);
 

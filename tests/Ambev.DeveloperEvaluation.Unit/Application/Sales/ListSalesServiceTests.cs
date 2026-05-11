@@ -113,8 +113,10 @@ public class ListSalesServiceTests
             .ListAsync(Arg.Any<SaleListQuery>(), Arg.Any<CancellationToken>())
             .Returns(repositoryResult);
 
-        var response = await _service.ListAsync(request);
+        var result = await _service.ListAsync(request);
+        var response = result.Value;
 
+        result.IsSuccess.Should().BeTrue();
         response.CurrentPage.Should().Be(page);
         response.PageSize.Should().Be(size);
         response.TotalItems.Should().Be(totalItems);

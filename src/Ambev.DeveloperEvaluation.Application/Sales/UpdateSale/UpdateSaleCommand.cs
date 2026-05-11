@@ -1,9 +1,10 @@
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSaleItem;
+using Ambev.DeveloperEvaluation.Common.Results;
 using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 
-public sealed record UpdateSaleCommand : IRequest<UpdateSaleResponse>
+public sealed record UpdateSaleCommand : IRequest<Result<UpdateSaleResponse>>
 {
     public Guid Id { get; set; }
     public string SaleNumber { get; set; } = string.Empty;

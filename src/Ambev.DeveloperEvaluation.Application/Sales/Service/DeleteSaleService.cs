@@ -1,6 +1,7 @@
 using Ambev.DeveloperEvaluation.Application.Messaging;
 using Ambev.DeveloperEvaluation.Application.Sales.DeleteSale;
 using Ambev.DeveloperEvaluation.Application.Sales.Events;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
@@ -23,7 +24,7 @@ public class DeleteSaleService : IDeleteSaleService
         _salesEventPublisher = salesEventPublisher;
     }
 
-    public async Task<DeleteSaleResponse> DeleteAsync(
+    public async Task<Result<DeleteSaleResponse>> DeleteAsync(
         DeleteSaleRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -32,7 +33,9 @@ public class DeleteSaleService : IDeleteSaleService
         var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken);
 
         if (sale is null)
-            throw new KeyNotFoundException($"Sale with id {request.Id} was not found.");
+        {
+            return Result<DeleteSaleResponse>.Failure(CreateSaleNotFoundError(request.Id));
+        }
 
         var wasSaleActive = sale.Active;
         sale.Delete();
@@ -42,7 +45,14 @@ public class DeleteSaleService : IDeleteSaleService
         if (wasSaleActive && !sale.Active)
             await _salesEventPublisher.PublishAsync(CreateSaleCancelledEvent(sale), cancellationToken);
 
-        return _mapper.Map<DeleteSaleResponse>(sale);
+        return Result<DeleteSaleResponse>.Success(_mapper.Map<DeleteSaleResponse>(sale));
+    }
+
+    private static Error CreateSaleNotFoundError(Guid saleId)
+    {
+        return Error.ResourceNotFound(
+            "Sale not found",
+            $"The sale with ID {saleId} does not exist.");
     }
 
     private static SaleCancelledEvent CreateSaleCancelledEvent(Sale sale)

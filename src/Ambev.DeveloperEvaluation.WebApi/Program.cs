@@ -61,6 +61,7 @@ public class Program
                 dbContext.Database.Migrate();
             }
 
+            app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseMiddleware<ValidationExceptionMiddleware>();
 
             if (app.Environment.IsDevelopment())

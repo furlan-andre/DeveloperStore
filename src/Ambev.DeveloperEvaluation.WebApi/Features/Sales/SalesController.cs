@@ -4,6 +4,7 @@ using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
 using Ambev.DeveloperEvaluation.Application.Sales.ListSales;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.WebApi.Common;
+using Ambev.DeveloperEvaluation.WebApi.Common.Errors;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.CreateSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.DeleteSales;
 using Ambev.DeveloperEvaluation.WebApi.Features.Sales.GetSales;
@@ -30,7 +31,8 @@ public class SalesController : BaseController
 
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResponse<ListSaleResult>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ListSales(CancellationToken cancellationToken)
     {
         var queryParameters = GetQueryParameters();
@@ -43,23 +45,28 @@ public class SalesController : BaseController
         };
         
         var result = await _mediator.Send(command, cancellationToken);
-        var response = _mapper.Map<IReadOnlyCollection<ListSaleResult>>(result.Items);
-
-        return new OkObjectResult(new PaginatedResponse<ListSaleResult>
+        
+        return result.ToActionResult(response =>
         {
-            Success = true,
-            Message = "Sales retrieved successfully",
-            Data = response,
-            CurrentPage = result.CurrentPage,
-            TotalPages = result.TotalPages,
-            TotalItems = result.TotalItems
+            var apiResult = _mapper.Map<IReadOnlyCollection<ListSaleResult>>(response.Items);
+
+            return new OkObjectResult(new PaginatedResponse<ListSaleResult>
+            {
+                Success = true,
+                Message = "Sales retrieved successfully",
+                Data = apiResult,
+                CurrentPage = response.CurrentPage,
+                TotalPages = response.TotalPages,
+                TotalItems = response.TotalItems
+            });
         });
     }
 
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponseWithData<GetSaleResult>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSale(
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
@@ -67,19 +74,24 @@ public class SalesController : BaseController
         var command = new GetSaleCommand { Id = id };
 
         var result = await _mediator.Send(command, cancellationToken);
-        var response = _mapper.Map<GetSaleResult>(result);
 
-        return new OkObjectResult(new ApiResponseWithData<GetSaleResult>
+        return result.ToActionResult(response =>
         {
-            Success = true,
-            Message = "Sale retrieved successfully",
-            Data = response
+            var apiResult = _mapper.Map<GetSaleResult>(response);
+
+            return new OkObjectResult(new ApiResponseWithData<GetSaleResult>
+            {
+                Success = true,
+                Message = "Sale retrieved successfully",
+                Data = apiResult
+            });
         });
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponseWithData<CreateSaleResult>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateSale(
         [FromBody] CreateSaleInput input,
         CancellationToken cancellationToken)
@@ -87,21 +99,25 @@ public class SalesController : BaseController
         var command = _mapper.Map<CreateSaleCommand>(input);
         
         var result = await _mediator.Send(command, cancellationToken);
-        
-        var response = _mapper.Map<CreateSaleResult>(result);
 
-        return Created($"/api/sales/{response.Id}", new ApiResponseWithData<CreateSaleResult>
+        return result.ToActionResult(response =>
         {
-            Success = true,
-            Message = "Sale created successfully",
-            Data = response
+            var apiResult = _mapper.Map<CreateSaleResult>(response);
+
+            return Created($"/api/sales/{apiResult.Id}", new ApiResponseWithData<CreateSaleResult>
+            {
+                Success = true,
+                Message = "Sale created successfully",
+                Data = apiResult
+            });
         });
     }
 
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponseWithData<UpdateSaleResult>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateSale(
         [FromRoute] Guid id,
         [FromBody] UpdateSaleInput input,
@@ -111,20 +127,25 @@ public class SalesController : BaseController
         command.Id = id;
 
         var result = await _mediator.Send(command, cancellationToken);
-        var response = _mapper.Map<UpdateSaleResult>(result);
 
-        return new OkObjectResult(new ApiResponseWithData<UpdateSaleResult>
+        return result.ToActionResult(response =>
         {
-            Success = true,
-            Message = "Sale updated successfully",
-            Data = response
+            var apiResult = _mapper.Map<UpdateSaleResult>(response);
+
+            return new OkObjectResult(new ApiResponseWithData<UpdateSaleResult>
+            {
+                Success = true,
+                Message = "Sale updated successfully",
+                Data = apiResult
+            });
         });
     }
 
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(ApiResponseWithData<DeleteSaleResult>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteSale(
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
@@ -132,13 +153,17 @@ public class SalesController : BaseController
         var command = new DeleteSaleCommand { Id = id };
 
         var result = await _mediator.Send(command, cancellationToken);
-        var response = _mapper.Map<DeleteSaleResult>(result);
 
-        return new OkObjectResult(new ApiResponseWithData<DeleteSaleResult>
+        return result.ToActionResult(response =>
         {
-            Success = true,
-            Message = "Sale deleted successfully",
-            Data = response
+            var apiResult = _mapper.Map<DeleteSaleResult>(response);
+
+            return new OkObjectResult(new ApiResponseWithData<DeleteSaleResult>
+            {
+                Success = true,
+                Message = "Sale deleted successfully",
+                Data = apiResult
+            });
         });
     }
 }

@@ -2,6 +2,7 @@ using Ambev.DeveloperEvaluation.Application.Common.Pagination;
 using Ambev.DeveloperEvaluation.Application.Sales.ListSales;
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
 using FluentAssertions;
@@ -37,11 +38,12 @@ public class ListSalesHandlerTests
 
         _listSalesService
             .ListAsync(Arg.Any<ListSalesRequest>(), Arg.Any<CancellationToken>())
-            .Returns(expectedResponse);
+            .Returns(Result<PagedResponse<ListSaleResponse>>.Success(expectedResponse));
 
         var response = await _handler.Handle(command, CancellationToken.None);
 
-        response.Should().BeSameAs(expectedResponse);
+        response.IsSuccess.Should().BeTrue();
+        response.Value.Should().BeSameAs(expectedResponse);
 
         await _listSalesService.Received(1).ListAsync(
             Arg.Any<ListSalesRequest>(),
@@ -65,6 +67,11 @@ public class ListSalesHandlerTests
             .WithOrder(order)
             .WithFilters(filters)
             .Build();
+        var expectedResponse = new PagedResponse<ListSaleResponse>();
+
+        _listSalesService
+            .ListAsync(Arg.Any<ListSalesRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<PagedResponse<ListSaleResponse>>.Success(expectedResponse));
 
         await _handler.Handle(command, CancellationToken.None);
 
@@ -83,6 +90,11 @@ public class ListSalesHandlerTests
     {
         var command = new ListSalesCommandTestBuilder().Build();
         var cancellationToken = new CancellationTokenSource().Token;
+        var expectedResponse = new PagedResponse<ListSaleResponse>();
+
+        _listSalesService
+            .ListAsync(Arg.Any<ListSalesRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<PagedResponse<ListSaleResponse>>.Success(expectedResponse));
 
         await _handler.Handle(command, cancellationToken);
 

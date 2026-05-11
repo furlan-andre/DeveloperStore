@@ -2,7 +2,9 @@ using Ambev.DeveloperEvaluation.Application.Messaging;
 using Ambev.DeveloperEvaluation.Application.Sales.Events;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSaleItem;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
+using Ambev.DeveloperEvaluation.Domain.Exceptions;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
 using AutoMapper;
@@ -28,7 +30,7 @@ public class UpdateSaleService : IUpdateSaleService
         _salesEventPublisher = salesEventPublisher;
     }
 
-    public async Task<UpdateSaleResponse> UpdateAsync(
+    public async Task<Result<UpdateSaleResponse>> UpdateAsync(
         UpdateSaleRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -37,26 +39,44 @@ public class UpdateSaleService : IUpdateSaleService
         var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken);
 
         if (sale is null)
-            throw new KeyNotFoundException($"Sale with id {request.Id} was not found.");
+        {
+            return Result<UpdateSaleResponse>.Failure(CreateSaleNotFoundError(request.Id));
+        }
 
         var wasSaleActive = sale.Active;
         var previousItems = sale.Items.ToDictionary(item => item.Id, CreateSaleItemSnapshot);
-        var customer = new Customer(request.CustomerId, request.CustomerName);
-        var branch = new Branch(request.BranchId, request.BranchName);
-        var items = CreateSaleItemUpdateData(request.Items);
 
-        sale.Update(
-            request.SaleNumber,
-            request.SaleDate,
-            customer,
-            branch,
-            request.Active,
-            items);
+        try
+        {
+            var customer = new Customer(request.CustomerId, request.CustomerName);
+            var branch = new Branch(request.BranchId, request.BranchName);
+            var items = CreateSaleItemUpdateData(request.Items);
+
+            sale.Update(
+                request.SaleNumber,
+                request.SaleDate,
+                customer,
+                branch,
+                request.Active,
+                items);
+        }
+        catch (DomainException exception)
+        {
+            return Result<UpdateSaleResponse>.Failure(
+                Error.DomainRuleViolation("Sale domain rule violated", exception.Message));
+        }
 
         await _saleRepository.UpdateAsync(sale, cancellationToken);
         await PublishEventsAsync(sale, wasSaleActive, previousItems, cancellationToken);
 
-        return _mapper.Map<UpdateSaleResponse>(sale);
+        return Result<UpdateSaleResponse>.Success(_mapper.Map<UpdateSaleResponse>(sale));
+    }
+
+    private static Error CreateSaleNotFoundError(Guid saleId)
+    {
+        return Error.ResourceNotFound(
+            "Sale not found",
+            $"The sale with ID {saleId} does not exist.");
     }
 
     private List<SaleItemUpdateData?>? CreateSaleItemUpdateData(IEnumerable<UpdateSaleItemRequest?>? items)

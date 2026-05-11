@@ -1,6 +1,7 @@
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Unit.Application.Sales.TestData;
 using AutoMapper;
 using FluentAssertions;
@@ -36,11 +37,12 @@ public class UpdateSaleHandlerTests
 
         _updateSaleService
             .UpdateAsync(Arg.Any<UpdateSaleRequest>(), Arg.Any<CancellationToken>())
-            .Returns(expectedResponse);
+            .Returns(Result<UpdateSaleResponse>.Success(expectedResponse));
 
         var response = await _handler.Handle(command, CancellationToken.None);
 
-        response.Should().BeSameAs(expectedResponse);
+        response.IsSuccess.Should().BeTrue();
+        response.Value.Should().BeSameAs(expectedResponse);
 
         await _updateSaleService.Received(1).UpdateAsync(
             Arg.Any<UpdateSaleRequest>(),
@@ -58,6 +60,11 @@ public class UpdateSaleHandlerTests
         var command = new UpdateSaleCommandTestBuilder()
             .WithItems([itemCommand])
             .Build();
+        var expectedResponse = new UpdateSaleResponse { Id = command.Id };
+
+        _updateSaleService
+            .UpdateAsync(Arg.Any<UpdateSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<UpdateSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, CancellationToken.None);
 
@@ -86,6 +93,11 @@ public class UpdateSaleHandlerTests
     {
         var command = new UpdateSaleCommandTestBuilder().Build();
         var cancellationToken = new CancellationTokenSource().Token;
+        var expectedResponse = new UpdateSaleResponse { Id = command.Id };
+
+        _updateSaleService
+            .UpdateAsync(Arg.Any<UpdateSaleRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Result<UpdateSaleResponse>.Success(expectedResponse));
 
         await _handler.Handle(command, cancellationToken);
 

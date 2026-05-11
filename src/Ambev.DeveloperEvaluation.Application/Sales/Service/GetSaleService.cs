@@ -1,4 +1,5 @@
 using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
+using Ambev.DeveloperEvaluation.Common.Results;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 
@@ -15,7 +16,7 @@ public class GetSaleService : IGetSaleService
         _mapper = mapper;
     }
 
-    public async Task<GetSaleResponse> GetByIdAsync(
+    public async Task<Result<GetSaleResponse>> GetByIdAsync(
         GetSaleRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -24,8 +25,17 @@ public class GetSaleService : IGetSaleService
         var sale = await _saleRepository.GetByIdAsNoTrackingAsync(request.Id, cancellationToken);
 
         if (sale is null)
-            throw new KeyNotFoundException($"Sale with id {request.Id} was not found.");
+        {
+            return Result<GetSaleResponse>.Failure(CreateSaleNotFoundError(request.Id));
+        }
 
-        return _mapper.Map<GetSaleResponse>(sale);
+        return Result<GetSaleResponse>.Success(_mapper.Map<GetSaleResponse>(sale));
+    }
+
+    private static Error CreateSaleNotFoundError(Guid saleId)
+    {
+        return Error.ResourceNotFound(
+            "Sale not found",
+            $"The sale with ID {saleId} does not exist.");
     }
 }
