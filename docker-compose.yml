@@ -17,7 +17,6 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ConnectionStrings__DefaultConnection=Host=ambev.developerevaluation.database;Port=5432;Database=developer_evaluation;Username=developer;Password=ev@luAt10n;
       - RabbitMQ__ConnectionString=amqp://guest:guest@ambev.developerevaluation.rabbitmq:5672
-      - RabbitMQ__InputQueue=developerstore.webapi
       - RabbitMQ__SalesEventsQueue=developerstore.sales.events
     ports:
       - "8080:8080"
