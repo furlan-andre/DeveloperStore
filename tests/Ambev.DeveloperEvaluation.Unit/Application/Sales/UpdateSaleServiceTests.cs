@@ -1,6 +1,9 @@
+using Ambev.DeveloperEvaluation.Application.Messaging;
+using Ambev.DeveloperEvaluation.Application.Sales.Events;
 using Ambev.DeveloperEvaluation.Application.Sales.Mappings;
 using Ambev.DeveloperEvaluation.Application.Sales.Service;
 using Ambev.DeveloperEvaluation.Application.Sales.UpdateSale;
+using Ambev.DeveloperEvaluation.Application.Sales.UpdateSaleItem;
 using Ambev.DeveloperEvaluation.Domain.Entities.Sales;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using Ambev.DeveloperEvaluation.Domain.Services.Sales;
@@ -16,12 +19,14 @@ namespace Ambev.DeveloperEvaluation.Unit.Application.Sales;
 public class UpdateSaleServiceTests
 {
     private readonly ISaleRepository _saleRepository;
+    private readonly ISalesEventPublisher _salesEventPublisher;
     private readonly IMapper _mapper;
     private readonly UpdateSaleService _service;
 
     public UpdateSaleServiceTests()
     {
         _saleRepository = Substitute.For<ISaleRepository>();
+        _salesEventPublisher = Substitute.For<ISalesEventPublisher>();
 
         var mapperConfiguration = new MapperConfiguration(configuration =>
         {
@@ -29,7 +34,11 @@ public class UpdateSaleServiceTests
         });
 
         _mapper = mapperConfiguration.CreateMapper();
-        _service = new UpdateSaleService(_saleRepository, new SaleDiscountPolicy(), _mapper);
+        _service = new UpdateSaleService(
+            _saleRepository,
+            new SaleDiscountPolicy(),
+            _mapper,
+            _salesEventPublisher);
     }
 
     [Fact(DisplayName = "Should have valid AutoMapper configuration")]
@@ -80,6 +89,9 @@ public class UpdateSaleServiceTests
 
         await action.Should().ThrowAsync<KeyNotFoundException>();
         await _saleRepository.DidNotReceive().UpdateAsync(Arg.Any<Sale>(), Arg.Any<CancellationToken>());
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleModifiedEvent>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Should call sale repository update once")]
@@ -95,6 +107,187 @@ public class UpdateSaleServiceTests
         await _saleRepository.Received(1).UpdateAsync(sale, Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Should publish sale modified event when active sale remains active")]
+    public async Task Given_ActiveSale_When_UpdatingSaleAsActive_Then_ShouldPublishSaleModifiedEvent()
+    {
+        var sale = new SaleTestBuilder().Build();
+        var request = CreateRequestForSale(sale);
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+
+        await _service.UpdateAsync(request);
+
+        await _salesEventPublisher.Received(1).PublishAsync(
+            Arg.Is<SaleModifiedEvent>(saleEvent =>
+                saleEvent.SaleId == sale.Id &&
+                saleEvent.SaleNumber == request.SaleNumber &&
+                saleEvent.CustomerId == request.CustomerId &&
+                saleEvent.CustomerName == request.CustomerName &&
+                saleEvent.BranchId == request.BranchId &&
+                saleEvent.BranchName == request.BranchName &&
+                saleEvent.Active &&
+                saleEvent.EventId != Guid.Empty &&
+                saleEvent.OccurredAt != default),
+            Arg.Any<CancellationToken>());
+        
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleCancelledEvent>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should publish sale cancelled event when active sale is inactivated")]
+    public async Task Given_ActiveSale_When_UpdatingSaleAsInactive_Then_ShouldPublishSaleCancelledEvent()
+    {
+        var sale = new SaleTestBuilder().Build();
+        var request = CreateRequestForSale(sale, active: false);
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+
+        await _service.UpdateAsync(request);
+
+        await _salesEventPublisher.Received(1).PublishAsync(
+            Arg.Is<SaleCancelledEvent>(saleEvent =>
+                saleEvent.SaleId == sale.Id &&
+                saleEvent.SaleNumber == request.SaleNumber &&
+                saleEvent.EventId != Guid.Empty &&
+                saleEvent.OccurredAt != default &&
+                saleEvent.CancelledAt != default),
+            Arg.Any<CancellationToken>());
+        
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleModifiedEvent>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should publish item cancelled event when existing active item is inactivated")]
+    public async Task Given_ActiveItem_When_UpdatingItemAsInactive_Then_ShouldPublishItemCancelledEvent()
+    {
+        var active = true;
+        var inactive = false;
+        var itemToInactivate = new SaleItemTestBuilder()
+            .WithActive(active)
+            .Build();
+        
+        var sale = new SaleTestBuilder()
+            .WithItems([itemToInactivate])
+            .Build();
+        
+        var itemRequest = new UpdateSaleItemRequestTestBuilder()
+            .WithId(itemToInactivate.Id)
+            .WithProductId(itemToInactivate.Product.Id)
+            .WithProductDescription(itemToInactivate.Product.Description)
+            .WithQuantity(itemToInactivate.Quantity)
+            .WithUnitPrice(itemToInactivate.UnitPrice)
+            .WithActive(inactive)
+            .Build();
+        
+        var request = new UpdateSaleRequestTestBuilder()
+            .WithId(sale.Id)
+            .WithItems([itemRequest])
+            .Build();
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+
+        await _service.UpdateAsync(request);
+
+        await _salesEventPublisher.Received(1).PublishAsync(
+            Arg.Is<ItemCancelledEvent>(saleEvent =>
+                saleEvent.SaleId == sale.Id &&
+                saleEvent.SaleNumber == sale.SaleNumber &&
+                saleEvent.ItemId == itemToInactivate.Id &&
+                saleEvent.ProductId == itemToInactivate.Product.Id &&
+                saleEvent.ProductDescription == itemToInactivate.Product.Description &&
+                saleEvent.EventId != Guid.Empty &&
+                saleEvent.OccurredAt != default),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should not publish item cancelled event when new item is created inactive")]
+    public async Task Given_NewInactiveItem_When_UpdatingSale_Then_ShouldNotPublishItemCancelledEvent()
+    {
+        var inactive = false;
+        var existingItem = new SaleItemTestBuilder().Build();
+        
+        var sale = new SaleTestBuilder()
+            .WithItems([existingItem])
+            .Build();
+        
+        var existingItemRequest = CreateRequestForItem(existingItem);
+        
+        var newInactiveItemRequest = new UpdateSaleItemRequestTestBuilder()
+            .WithId(Guid.Empty)
+            .WithActive(inactive)
+            .Build();
+        
+        var request = new UpdateSaleRequestTestBuilder()
+            .WithId(sale.Id)
+            .WithItems([existingItemRequest, newInactiveItemRequest])
+            .Build();
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+
+        await _service.UpdateAsync(request);
+
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<ItemCancelledEvent>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should not publish item cancelled event when item is removed by absence")]
+    public async Task Given_ItemAbsentFromRequest_When_UpdatingSale_Then_ShouldNotPublishItemCancelledEvent()
+    {
+        var keptItem = new SaleItemTestBuilder().Build();
+        var removedItem = new SaleItemTestBuilder().Build();
+        
+        var sale = new SaleTestBuilder()
+            .WithItems([keptItem, removedItem])
+            .Build();
+        
+        var keptItemRequest = CreateRequestForItem(keptItem);
+        
+        var request = new UpdateSaleRequestTestBuilder()
+            .WithId(sale.Id)
+            .WithItems([keptItemRequest])
+            .Build();
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+
+        await _service.UpdateAsync(request);
+
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<ItemCancelledEvent>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Should not publish events when repository update fails")]
+    public async Task Given_RepositoryFailure_When_UpdatingSale_Then_ShouldNotPublishEvents()
+    {
+        var sale = new SaleTestBuilder().Build();
+        var request = CreateRequestForSale(sale);
+        var exception = new InvalidOperationException("Repository failure");
+
+        _saleRepository.GetByIdAsync(request.Id, Arg.Any<CancellationToken>()).Returns(sale);
+        _saleRepository
+            .UpdateAsync(sale, Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw exception);
+
+        var action = async () => await _service.UpdateAsync(request);
+
+        await action.Should().ThrowAsync<InvalidOperationException>();
+        
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleModifiedEvent>(),
+            Arg.Any<CancellationToken>());
+        
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<SaleCancelledEvent>(),
+            Arg.Any<CancellationToken>());
+        
+        await _salesEventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<ItemCancelledEvent>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "Should update sale data")]
     public async Task Given_ValidRequest_When_UpdatingSale_Then_ShouldUpdateSaleData()
     {
@@ -107,6 +300,7 @@ public class UpdateSaleServiceTests
         var branchName = "Updated Branch";
         var active = false;
         var existingItem = sale.Items.First();
+        
         var itemRequest = new UpdateSaleItemRequestTestBuilder()
             .WithId(existingItem.Id)
             .WithProductId(existingItem.Product.Id)
@@ -149,6 +343,7 @@ public class UpdateSaleServiceTests
     {
         var keptItem = new SaleItemTestBuilder().Build();
         var removedItem = new SaleItemTestBuilder().Build();
+        
         var sale = new SaleTestBuilder()
             .WithItems([keptItem, removedItem])
             .Build();
@@ -305,17 +500,10 @@ public class UpdateSaleServiceTests
         response.Items.Should().ContainSingle();
     }
 
-    private static UpdateSaleRequest CreateRequestForSale(Sale sale)
+    private static UpdateSaleRequest CreateRequestForSale(Sale sale, bool? active = null)
     {
         var existingItem = sale.Items.First();
-        var itemRequest = new UpdateSaleItemRequestTestBuilder()
-            .WithId(existingItem.Id)
-            .WithProductId(existingItem.Product.Id)
-            .WithProductDescription(existingItem.Product.Description)
-            .WithQuantity(existingItem.Quantity)
-            .WithUnitPrice(existingItem.UnitPrice)
-            .WithActive(existingItem.Active)
-            .Build();
+        var itemRequest = CreateRequestForItem(existingItem);
 
         return new UpdateSaleRequestTestBuilder()
             .WithId(sale.Id)
@@ -325,8 +513,20 @@ public class UpdateSaleServiceTests
             .WithCustomerName(sale.Customer.Name)
             .WithBranchId(sale.Branch.Id)
             .WithBranchName(sale.Branch.Name)
-            .WithActive(sale.Active)
+            .WithActive(active ?? sale.Active)
             .WithItems([itemRequest])
+            .Build();
+    }
+
+    private static UpdateSaleItemRequest CreateRequestForItem(SaleItem existingItem)
+    {
+        return new UpdateSaleItemRequestTestBuilder()
+            .WithId(existingItem.Id)
+            .WithProductId(existingItem.Product.Id)
+            .WithProductDescription(existingItem.Product.Description)
+            .WithQuantity(existingItem.Quantity)
+            .WithUnitPrice(existingItem.UnitPrice)
+            .WithActive(existingItem.Active)
             .Build();
     }
 }
