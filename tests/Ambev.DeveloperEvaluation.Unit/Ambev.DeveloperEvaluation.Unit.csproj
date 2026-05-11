@@ -40,4 +40,9 @@
 		<ProjectReference Include="..\utils\Ambev.DeveloperEvaluation.TestUtils\Ambev.DeveloperEvaluation.TestUtils.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Domain\Entities\" />
+	  <Folder Include="WebApi\Common\" />
+	</ItemGroup>
+
 </Project>

@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Messaging;
 
+[ExcludeFromCodeCoverage]
 public sealed class RabbitMqTopologyInitializer : IHostedService
 {
     private readonly IConnection _connection;

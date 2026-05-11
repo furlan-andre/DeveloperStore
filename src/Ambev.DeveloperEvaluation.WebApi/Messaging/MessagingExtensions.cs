@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Ambev.DeveloperEvaluation.Application.Messaging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -5,6 +6,7 @@ using Rebus.Config;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Messaging;
 
+[ExcludeFromCodeCoverage]
 public static class MessagingExtensions
 {
     public static WebApplicationBuilder AddRabbitMqMessaging(this WebApplicationBuilder builder)
